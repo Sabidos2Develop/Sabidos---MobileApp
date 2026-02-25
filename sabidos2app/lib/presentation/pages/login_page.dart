@@ -6,7 +6,8 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: DefaultTabController(
+      debugShowCheckedModeBanner: false,
+      home: DefaultTabController( 
         length: 2,
         child: Scaffold(
           appBar: AppBar(
@@ -38,6 +39,7 @@ class LoginForm extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
+      
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
