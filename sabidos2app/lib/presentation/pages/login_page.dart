@@ -1,113 +1,75 @@
+import 'dart:io';
+import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:flutter/material.dart';
+import 'widgets/cadastrotab.dart';
+import 'widgets/logintab.dart';
 
+class AuthPage extends StatelessWidget {
+  const AuthPage({super.key});
 
-
-class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: DefaultTabController( 
-        length: 2,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('Login / Cadastro'),
-            bottom: TabBar(
-              tabs: [
-                Tab(text: 'Login'),
-                Tab(text: 'Cadastro'),
-              ],
-            ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: const Color(0xFF1E1B2E),
+        body: SafeArea(
+  child: Column(
+    children: [
+      const SizedBox(height: 32),
+
+      SvgPicture.asset(
+        'assets/images/logo.svg',
+        width: 150,
+        height: 150,
+      ),
+
+      const SizedBox(height: 24),
+
+      Center(
+        child: Container(
+          width: 280,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF292535),
+            borderRadius: BorderRadius.circular(50),
           ),
-          body: TabBarView(
-            children: [
-              LoginForm(),
-              CadastroForm(),
+          child: TabBar(
+            indicator: BoxDecoration(
+              color: const Color(0xFFFBCB4E),
+              borderRadius: BorderRadius.circular(50),
+              
+            ),
+            splashBorderRadius: BorderRadius.circular(50),
+            overlayColor: MaterialStateProperty.all(Colors.transparent),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.white,
+            dividerColor: Colors.transparent,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 20),
+            tabs: const [
+              Tab(text: "Login", height: 45),
+              Tab(text: "Cadastro", height: 45),
             ],
           ),
         ),
       ),
-    );
-  }
-}
 
-class LoginForm extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final _emailController = TextEditingController();
-    final _passwordController = TextEditingController();
+      const SizedBox(height: 32),
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(labelText: 'E-mail'),
-          ),
-          TextField(
-            controller: _passwordController,
-            decoration: InputDecoration(labelText: 'Senha'),
-            obscureText: true,
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Aqui você faria a lógica de login
-              // Exemplo de simulação:
-              if (_emailController.text == 'user@example.com' && _passwordController.text == '1234') {
-                // Simula um sucesso
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login bem-sucedido!')),
-                );
-                // Aqui você faria o redirecionamento
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Credenciais inválidas')),
-                );
-              }
-            },
-            child: Text('Entrar'),
-          ),
-        ],
+      const Expanded(
+        child: TabBarView(
+          children: [
+            LoginTab(),
+            CadastroTab(),
+          ],
+        ),
       ),
-    );
-  }
-}
-
-class CadastroForm extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final _emailController = TextEditingController();
-    final _passwordController = TextEditingController();
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(labelText: 'E-mail'),
-          ),
-          TextField(
-            controller: _passwordController,
-            decoration: InputDecoration(labelText: 'Senha'),
-            obscureText: true,
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Aqui você faria a lógica de cadastro
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Cadastro feito com sucesso!')),
-              );
-            },
-            child: Text('Cadastrar'),
-          ),
-        ],
+    ],
+  ),
+),
       ),
     );
   }
