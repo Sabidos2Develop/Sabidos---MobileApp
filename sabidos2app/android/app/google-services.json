@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "772561215621",
+    "project_id": "sabidos-fc654",
+    "storage_bucket": "sabidos-fc654.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:772561215621:android:1b7281af06ebb83d8b09ec",
+        "android_client_info": {
+          "package_name": "com.example.sabidos2app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "772561215621-rnus2n1r7f72pm0043lo5h54qvoncjfd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMsMRUNx7Z150P4sLSo8LHZ0KYPLE9Mto"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "772561215621-rnus2n1r7f72pm0043lo5h54qvoncjfd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
