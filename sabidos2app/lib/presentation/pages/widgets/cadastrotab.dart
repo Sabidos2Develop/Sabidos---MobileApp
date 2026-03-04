@@ -1,11 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/pages/widgets/inputDecoration.dart';
 import 'package:sabidos2app/presentation/pages/widgets/gradientBorderButton.dart';
-class CadastroTab extends StatelessWidget {
+import 'package:sabidos2app/presentation/controllers/authController.dart';
+
+
+
+class CadastroTab extends StatefulWidget {
   const CadastroTab({super.key});
 
   @override
+  State<CadastroTab> createState() => _CadastroTabState();
+}
+
+class _CadastroTabState extends State<CadastroTab> {
+  
+    final nomeController = TextEditingController();
+    final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmpasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final auth = context.read<AuthController>();
+
+    try {
+      await auth.register(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro ao fazer Register")),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+     final auth = context.watch<AuthController>(); // ✅ corrigido
+
     return LayoutBuilder(
   builder: (context, constraints) {
     return SingleChildScrollView(
@@ -30,19 +72,22 @@ class CadastroTab extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            customInput("Nome"),
+            customInput("Nome" , nomeController ),
             const SizedBox(height: 16),
 
-            customInput("Email"),
+            customInput("Email", emailController),
             const SizedBox(height: 16),
 
-            customInput("Senha", obscure: true),
+            customInput("Senha", passwordController , obscure: true),
             const SizedBox(height: 16),
 
-            customInput("Confirmar Senha", obscure: true),
+            customInput("Confirmar Senha", confirmpasswordController , obscure: true),
             const SizedBox(height: 24),
 
-            gradientBorderButton("Entrar"),
+           GradientBorderButton(
+                  text: auth.isLoading ? "Entrando..." : "Login",
+                  onPressed: auth.isLoading ? () {} : _handleRegister,
+                ),
 
             const SizedBox(height: 30),
 
