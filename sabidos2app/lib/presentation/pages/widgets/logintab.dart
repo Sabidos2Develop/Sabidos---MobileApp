@@ -1,112 +1,150 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/pages/widgets/inputDecoration.dart';
 import 'package:sabidos2app/presentation/pages/widgets/gradientBorderButton.dart';
-class LoginTab extends StatelessWidget {
+import 'package:sabidos2app/presentation/controllers/authController.dart';
+
+class LoginTab extends StatefulWidget {
   const LoginTab({super.key});
 
- @override
-Widget build(BuildContext context) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      return 
-      SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.maxHeight,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+  @override
+  State<LoginTab> createState() => _LoginTabState();
+}
 
-              const SizedBox(height: 20),
+class _LoginTabState extends State<LoginTab> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
-              /// TÍTULO
-              const Text(
-                "Login",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
-              const SizedBox(height: 30),
+  Future<void> _handleLogin() async {
+    final auth = context.read<AuthController>();
 
-              /// EMAIL
-              customInput("Email"),
+    try {
+      await auth.login(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+    } catch (e) {
+      if (!mounted) return;
 
-              const SizedBox(height: 16),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erro ao fazer login")),
+      );
+    }
+  }
 
-              /// SENHA
-              customInput("Senha", obscure: true),
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>(); // ✅ corrigido
 
-              const SizedBox(height: 24),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
 
-              /// BOTÃO ENTRAR
-              gradientBorderButton("Entrar"),
-
-              const SizedBox(height: 30),
-
-              /// SEPARADOR
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: const Color(0xFF3F3C4E),
-                    ),
+                /// TÍTULO
+                const Text(
+                  "Login",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF3F3C4E)),
-                    ),
-                    child: const Text(
-                      "ou",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
+                ),
+
+                const SizedBox(height: 30),
+
+                /// EMAIL
+                customInput("Email", emailController),
+
+                const SizedBox(height: 16),
+
+                /// SENHA
+                customInput("Senha", passwordController, obscure: true),
+
+                const SizedBox(height: 24),
+
+                /// BOTÃO ENTRAR
+                GradientBorderButton(
+                  text: auth.isLoading ? "Entrando..." : "Login",
+                  onPressed: auth.isLoading ? () {} : _handleLogin,
+                ),
+
+                const SizedBox(height: 30),
+
+                /// SEPARADOR
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: const Color(0xFF3F3C4E),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: const Color(0xFF3F3C4E),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 30),
-
-              /// BOTÃO GOOGLE
                     Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1F1C2C),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF3F3C4E)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              // child: Image.network(
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF3F3C4E)),
+                      ),
+                      child: const Text(
+                        "ou",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: const Color(0xFF3F3C4E),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+
+                /// BOTÃO GOOGLE
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1F1C2C),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF3F3C4E)),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                   // child: Image.network(
               //   "https://www.svgrepo.com/show/355037/google.png",
               // ),
+                    // child: Icon(Icons.login, color: Colors.white),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+              ],
             ),
           ),
-
-
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 }

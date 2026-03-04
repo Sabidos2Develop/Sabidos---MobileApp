@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-Widget customInput(String hint, {bool obscure = false}) {
+Widget customInput(String hint, controller , {bool obscure = false}  ) {
   return TextField(
+    controller: controller,
     obscureText: obscure,
     style: const TextStyle(
       color: Colors.white70, // semelhante ao text-gray-300
