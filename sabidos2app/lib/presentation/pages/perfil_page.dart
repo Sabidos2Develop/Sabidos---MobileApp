@@ -298,7 +298,7 @@ class _ProfileHeader extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
         image: const DecorationImage(
-          image: AssetImage('assets/images/profileBg.jpg'),
+          image: AssetImage(''),
           fit: BoxFit.cover,
           onError: null,
         ),
