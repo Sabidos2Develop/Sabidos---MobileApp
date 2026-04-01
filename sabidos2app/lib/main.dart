@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sabidos2app/data/core/checkauth.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 import '../../data/datasources/auth_service.dart';
+import 'package:sabidos2app/presentation/pages/perfil_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         // useMaterial3: true
       ),
-      home: const CheckAuth(),
+      home: const PerfilPage(),
     );
   }
 }
