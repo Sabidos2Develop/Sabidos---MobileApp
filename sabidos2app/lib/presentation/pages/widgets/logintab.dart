@@ -33,9 +33,9 @@ class _LoginTabState extends State<LoginTab> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erro ao fazer login")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Erro ao fazer login")));
     }
   }
 
@@ -48,9 +48,7 @@ class _LoginTabState extends State<LoginTab> {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight,
-            ),
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -104,10 +102,7 @@ class _LoginTabState extends State<LoginTab> {
                       ),
                       child: const Text(
                         "ou",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ),
                     Expanded(
@@ -122,20 +117,36 @@ class _LoginTabState extends State<LoginTab> {
                 const SizedBox(height: 30),
 
                 /// BOTÃO GOOGLE
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F1C2C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF3F3C4E)),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                   // child: Image.network(
-              //   "https://www.svgrepo.com/show/355037/google.png",
-              // ),
-                    // child: Icon(Icons.login, color: Colors.white),
+                GestureDetector(
+                  onTap: () async {
+                    final auth = context.read<AuthController>();
+
+                    if (auth.isLoading) return;
+
+                    try {
+                      await auth.loginWithGoogle();
+                    } catch (e) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Erro ao entrar com Google"),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F1C2C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF3F3C4E)),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(Icons.login, color: Colors.white),
+                    ),
                   ),
                 ),
 
