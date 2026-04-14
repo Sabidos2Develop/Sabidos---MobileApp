@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-// import 'package:sabidos2app/presentation/pages/login_page.dart';
+import 'package:sabidos2app/data/datasources/resumo_service.dart';
+import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
+import 'package:sabidos2app/presentation/pages/login_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
-// import 'package:sabidos2app/data/core/checkauth.dart';
+import 'package:sabidos2app/data/core/checkauth.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 import '../../data/datasources/auth_service.dart';
-import 'package:sabidos2app/presentation/pages/perfil_page.dart';
+import 'package:sabidos2app/presentation/pages/resumo_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +17,9 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthController(AuthService())),
+        ChangeNotifierProvider(
+          create: (_) => ResumoController(ResumoService()),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -34,7 +39,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         // useMaterial3: true
       ),
-      home: const PerfilPage(),
+      home: AuthPage(),
     );
   }
 }

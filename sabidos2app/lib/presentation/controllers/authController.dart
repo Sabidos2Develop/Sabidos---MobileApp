@@ -54,12 +54,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final credential = await _service.signInWithGoogle();
-      final user = credential.user;
-
-      if (user != null) {
-        await _service.syncUser(user);
-      }
+      await _service.signInWithGoogle();
     } catch (e) {
       rethrow;
     } finally {

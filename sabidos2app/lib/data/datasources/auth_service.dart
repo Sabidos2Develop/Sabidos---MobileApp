@@ -7,15 +7,24 @@ class AuthService {
   final _db = FirebaseFirestore.instance;
 
   Future<void> syncUser(User user) async {
-    /// 🔥 FIRESTORE
-    await _db.collection("usuarios").doc(user.uid).set({
-      "nome": user.displayName ?? "Sem nome",
-      "email": user.email,
-      "uid": user.uid,
-      "ultimoAcesso": DateTime.now(),
-      "perfil": "estudante",
-      "ativo": true,
-    }, SetOptions(merge: true));
+    final docRef = _db.collection("usuarios").doc(user.uid);
+
+    final doc = await docRef.get();
+
+    if (!doc.exists) {
+      /// 🔹 Usuário novo
+      await docRef.set({
+        "nome": user.displayName,
+        "email": user.email,
+        "uid": user.uid,
+        "criadoEm": DateTime.now(),
+        "perfil": "estudante",
+        "ativo": true,
+      });
+    } else {
+      /// 🔹 Usuário existente → atualiza acesso
+      await docRef.update({"ultimoAcesso": DateTime.now()});
+    }
   }
 
   Future<void> login(String email, String password) async {
