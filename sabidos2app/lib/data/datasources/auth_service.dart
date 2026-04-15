@@ -31,28 +31,46 @@ class AuthService {
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  Future<UserCredential> signInWithGoogle() async {
-    final googleUser = await GoogleSignIn().signIn();
+  Future<User> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn.instance;
 
-    if (googleUser == null) {
+    await googleSignIn.initialize();
+
+    final account = await googleSignIn.authenticate();
+
+    if (account == null) {
       throw Exception("Login cancelado");
     }
 
-    final googleAuth = await googleUser.authentication;
+    final idToken = account.authentication.idToken;
 
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
+    if (idToken == null) {
+      throw Exception("ID Token não encontrado");
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+
+    final userCredential = await FirebaseAuth.instance.signInWithCredential(
+      credential,
     );
 
-    return await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+
+    if (user == null) {
+      throw Exception("Erro ao autenticar usuário");
+    }
+
+    await syncUser(user);
+
+    return user;
   }
 
   Future<void> register(String email, String password) async {
-    await _auth.createUserWithEmailAndPassword(
+    final cred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    await syncUser(cred.user!);
   }
 
   Future<void> logout() async {
