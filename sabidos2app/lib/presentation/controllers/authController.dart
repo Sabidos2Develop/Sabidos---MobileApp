@@ -48,4 +48,18 @@ class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     await _service.logout();
   }
+
+  Future<void> loginWithGoogle() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _service.signInWithGoogle();
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
