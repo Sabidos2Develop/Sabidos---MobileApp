@@ -8,165 +8,119 @@ class FlashcardsPage extends StatefulWidget {
 }
 
 class _FlashcardsPageState extends State<FlashcardsPage> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _frontController = TextEditingController();
-  final TextEditingController _backController = TextEditingController();
+  final LocalFlashcardsRepository _repository = LocalFlashcardsRepository();
 
-  final Set<String> _flippedCards = {};
-  final LocalFlashcardRepository _localRepository = LocalFlashcardRepository();
-
-  List<FlashcardModel> _flashcards = [];
-  bool _loading = false;
+  List<FlashcardCollection> _collections = [];
+  bool _loading = true;
   String _error = '';
-  FlashcardModel? _editingFlashcard;
 
   @override
   void initState() {
     super.initState();
-    _loadLocalFlashcards();
-
-    _titleController.addListener(() => setState(() {}));
-    _frontController.addListener(() => setState(() {}));
-    _backController.addListener(() => setState(() {}));
+    _loadCollections();
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _frontController.dispose();
-    _backController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadLocalFlashcards() async {
+  Future<void> _loadCollections() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = '';
     });
 
     try {
-      final cards = await _localRepository.getFlashcards();
-      cards.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final data = await _repository.getCollections();
 
+      if (!mounted) return;
       setState(() {
-        _flashcards = cards;
+        _collections = data;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Falha ao carregar flashcards locais.';
+        _error = 'Falha ao carregar coleções.';
         _loading = false;
       });
     }
   }
 
-  void _resetForm() {
-    _titleController.clear();
-    _frontController.clear();
-    _backController.clear();
-    _editingFlashcard = null;
+  void _showSnack(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF2A2438),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
   }
 
-  bool _validateForm() {
-    if (_titleController.text.trim().isEmpty ||
-        _frontController.text.trim().isEmpty ||
-        _backController.text.trim().isEmpty) {
-      setState(() {
-        _error = 'Todos os campos são obrigatórios.';
-      });
-      return false;
-    }
-    return true;
+  String _formatShortDate(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    return '$d/$m';
   }
 
-  Future<void> _createFlashcard() async {
-    if (!_validateForm()) return;
+  Future<void> _openCreateCollectionDialog() async {
+    final result = await showDialog<CollectionFormData>(
+      context: context,
+      builder: (_) => const CreateCollectionDialog(),
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
 
     try {
-      setState(() => _error = '');
-
-      final newCard = FlashcardModel(
+      final collection = FlashcardCollection(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
-        titulo: _titleController.text.trim(),
-        frente: _frontController.text.trim(),
-        verso: _backController.text.trim(),
-        data: _formatShortDate(DateTime.now()),
-        createdAt: DateTime.now(),
-        atualizadoEm: null,
+        titulo: result.titulo,
+        descricao: result.descricao,
+        criadoEm: DateTime.now(),
+        flashcards: [],
       );
 
-      await _localRepository.addFlashcard(newCard);
-      await _loadLocalFlashcards();
+      await _repository.addCollection(collection);
+      await _loadCollections();
 
-      _resetForm();
-
-      if (mounted) {
-        Navigator.pop(context);
-        _showSnack('Flashcard criado com sucesso!');
-      }
+      if (!mounted) return;
+      _showSnack('Coleção criada com sucesso!');
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Ocorreu um erro ao salvar o flashcard.';
+        _error = 'Erro ao criar coleção.';
       });
     }
   }
 
-  Future<void> _updateFlashcard() async {
-    if (!_validateForm() || _editingFlashcard == null) return;
-
-    try {
-      setState(() => _error = '');
-
-      final updatedCard = _editingFlashcard!.copyWith(
-        titulo: _titleController.text.trim(),
-        frente: _frontController.text.trim(),
-        verso: _backController.text.trim(),
-        data: _formatShortDate(DateTime.now()),
-        atualizadoEm: DateTime.now(),
-      );
-
-      await _localRepository.updateFlashcard(updatedCard);
-      await _loadLocalFlashcards();
-
-      _resetForm();
-
-      if (mounted) {
-        Navigator.pop(context);
-        _showSnack('Flashcard atualizado com sucesso!');
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Ocorreu um erro ao editar o flashcard.';
-      });
-    }
-  }
-
-  Future<void> _deleteFlashcard(String flashcardId) async {
+  Future<void> _deleteCollection(String collectionId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF292535),
         title: const Text(
-          'Excluir flashcard',
+          'Excluir coleção',
           style: TextStyle(color: Color(0xFFFBCB4E)),
         ),
         content: const Text(
-          'Tem certeza que deseja excluir este flashcard?',
+          'Tem certeza que deseja excluir esta coleção e todos os cards dela?',
           style: TextStyle(color: Colors.white),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text(
               'Cancelar',
               style: TextStyle(color: Colors.white70),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFBCB4E),
-              foregroundColor: const Color(0xFF292535),
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Excluir'),
           ),
@@ -176,31 +130,487 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
     if (confirm != true) return;
 
-    try {
-      await _localRepository.deleteFlashcard(flashcardId);
-      await _loadLocalFlashcards();
+    await _repository.deleteCollection(collectionId);
+    await _loadCollections();
+    _showSnack('Coleção excluída.');
+  }
 
-      if (mounted) {
-        _showSnack('Flashcard excluído.');
-      }
-    } catch (e) {
+  Future<void> _openCollectionDetails(FlashcardCollection collection) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CollectionDetailsPage(
+          collectionId: collection.id,
+          repository: _repository,
+        ),
+      ),
+    );
+
+    await _loadCollections();
+  }
+
+  Future<void> _playCollection(FlashcardCollection collection) async {
+    if (collection.flashcards.isEmpty) {
+      _showSnack('Essa coleção ainda não tem flashcards.');
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FlashcardGamePage(collection: collection),
+      ),
+    );
+
+    await _loadCollections();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF171621),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF171621),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Flashcards',
+          style: TextStyle(
+            color: Color(0xFFFBCB4E),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateCollectionDialog,
+        backgroundColor: const Color(0xFFFBCB4E),
+        foregroundColor: const Color(0xFF292535),
+        icon: const Icon(Icons.add),
+        label: const Text(
+          'Coleção',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: const Color(0xFFFBCB4E),
+          backgroundColor: const Color(0xFF292535),
+          onRefresh: _loadCollections,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+            children: [
+              _buildTopPanel(),
+              const SizedBox(height: 16),
+              _buildCollectionsPanel(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopPanel() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF292535),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SabidosSectionHeader(title: 'Baralhos de Estudo'),
+          SizedBox(height: 14),
+          Text(
+            'Crie coleções de flashcards por tema, organize seu estudo e entre no modo Jogar para testar sua memória.',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: 14),
+          _InfoBox(
+            title: '💡 Como funciona',
+            text:
+                '• Crie uma coleção\n• Adicione seus cards\n• Toque em Jogar\n• Responda o verso do card\n• Veja sua pontuação final',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollectionsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF292535),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _SabidosSectionHeader(title: 'Minhas Coleções'),
+              ),
+              Text(
+                '${_collections.length} coleção(ões)',
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          if (_error.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.redAccent),
+              ),
+              child: Text(
+                _error,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFFBCB4E),
+                ),
+              ),
+            )
+          else if (_collections.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Column(
+                children: [
+                  Text('🃏', style: TextStyle(fontSize: 52)),
+                  SizedBox(height: 10),
+                  Text(
+                    'Nenhuma coleção encontrada.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Crie sua primeira coleção no botão abaixo.',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              itemCount: _collections.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, index) {
+                final collection = _collections[index];
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => _openCollectionDetails(collection),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(18),
+                      border: const Border(
+                        left: BorderSide(
+                          color: Color(0xFFFBCB4E),
+                          width: 4,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.style_rounded,
+                              color: Color(0xFFFBCB4E),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                collection.titulo,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFFBCB4E),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _formatShortDate(collection.criadoEm),
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (collection.descricao.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            collection.descricao,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _ActionChip(
+                              icon: Icons.layers,
+                              label: '${collection.flashcards.length} cards',
+                              color: Colors.lightBlueAccent,
+                              onTap: () => _openCollectionDetails(collection),
+                            ),
+                            _ActionChip(
+                              icon: Icons.play_arrow_rounded,
+                              label: 'Jogar',
+                              color: const Color(0xFF6BE38A),
+                              onTap: () => _playCollection(collection),
+                            ),
+                            _ActionChip(
+                              icon: Icons.delete,
+                              label: 'Excluir',
+                              color: Colors.redAccent,
+                              onTap: () => _deleteCollection(collection.id),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class CollectionDetailsPage extends StatefulWidget {
+  final String collectionId;
+  final LocalFlashcardsRepository repository;
+
+  const CollectionDetailsPage({
+    super.key,
+    required this.collectionId,
+    required this.repository,
+  });
+
+  @override
+  State<CollectionDetailsPage> createState() => _CollectionDetailsPageState();
+}
+
+class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
+  FlashcardCollection? _collection;
+  bool _loading = true;
+  String _error = '';
+  final Set<String> _flipped = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCollection();
+  }
+
+  Future<void> _loadCollection() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
+
+    try {
+      final collection = await widget.repository.getCollectionById(
+        widget.collectionId,
+      );
+
+      if (!mounted) return;
       setState(() {
-        _error = 'Ocorreu um erro ao excluir o flashcard.';
+        _collection = collection;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Falha ao carregar coleção.';
+        _loading = false;
       });
     }
   }
 
-  void _toggleFlip(String flashcardId) {
-    setState(() {
-      if (_flippedCards.contains(flashcardId)) {
-        _flippedCards.remove(flashcardId);
-      } else {
-        _flippedCards.add(flashcardId);
-      }
-    });
+  void _showSnack(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF2A2438),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
   }
 
-  void _openDetailsBottomSheet(FlashcardModel card) {
+  String _shortDate(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    return '$d/$m';
+  }
+
+  Future<void> _openCreateCardDialog() async {
+    final result = await showDialog<FlashcardFormData>(
+      context: context,
+      builder: (_) => const CreateFlashcardDialog(),
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    await widget.repository.addCardToCollection(
+      widget.collectionId,
+      FlashcardModel(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        titulo: result.titulo,
+        frente: result.frente,
+        verso: result.verso,
+        data: _shortDate(DateTime.now()),
+        createdAt: DateTime.now(),
+        atualizadoEm: null,
+      ),
+    );
+
+    await _loadCollection();
+    _showSnack('Flashcard criado com sucesso!');
+  }
+
+  Future<void> _editCard(FlashcardModel card) async {
+    final result = await showDialog<FlashcardFormData>(
+      context: context,
+      builder: (_) => EditFlashcardDialog(card: card),
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    await widget.repository.updateCardInCollection(
+      widget.collectionId,
+      card.copyWith(
+        titulo: result.titulo,
+        frente: result.frente,
+        verso: result.verso,
+        data: _shortDate(DateTime.now()),
+        atualizadoEm: DateTime.now(),
+      ),
+    );
+
+    await _loadCollection();
+    _showSnack('Flashcard atualizado!');
+  }
+
+  Future<void> _deleteCard(String cardId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF292535),
+        title: const Text(
+          'Excluir flashcard',
+          style: TextStyle(color: Color(0xFFFBCB4E)),
+        ),
+        content: const Text(
+          'Deseja realmente excluir este flashcard?',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await widget.repository.deleteCardFromCollection(
+      widget.collectionId,
+      cardId,
+    );
+    await _loadCollection();
+    _showSnack('Flashcard excluído.');
+  }
+
+  void _openBottomSheet(FlashcardModel card) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -208,13 +618,13 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.82,
           minChildSize: 0.55,
           maxChildSize: 0.95,
-          builder: (context, scrollController) {
+          builder: (_, scrollController) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: SingleChildScrollView(
@@ -245,25 +655,18 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                     _detailBlock('Frente', card.frente),
                     const SizedBox(height: 16),
                     _detailBlock('Verso', card.verso),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'Criado em: ${_formatFullDate(card.createdAt)}',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _handleEditClick(card);
+                            onPressed: () async {
+                              Navigator.of(sheetContext).pop();
+                              await Future.delayed(
+                                const Duration(milliseconds: 10),
+                              );
+                              if (!mounted) return;
+                              _editCard(card);
                             },
                             icon: const Icon(Icons.edit),
                             label: const Text('Editar'),
@@ -278,8 +681,12 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
-                              Navigator.pop(context);
-                              await _deleteFlashcard(card.id);
+                              Navigator.of(sheetContext).pop();
+                              await Future.delayed(
+                                const Duration(milliseconds: 10),
+                              );
+                              if (!mounted) return;
+                              _deleteCard(card.id);
                             },
                             icon: const Icon(Icons.delete),
                             label: const Text('Excluir'),
@@ -299,295 +706,6 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
           },
         );
       },
-    );
-  }
-
-  void _handleEditClick(FlashcardModel flashcard) {
-    _editingFlashcard = flashcard;
-    _titleController.text = flashcard.titulo;
-    _frontController.text = flashcard.frente;
-    _backController.text = flashcard.verso;
-
-    _showEditDialog();
-  }
-
-  String _formatShortDate(DateTime date) {
-    final dia = date.day.toString().padLeft(2, '0');
-    final mes = date.month.toString().padLeft(2, '0');
-    return '$dia/$mes';
-  }
-
-  String _formatFullDate(DateTime date) {
-    final dia = date.day.toString().padLeft(2, '0');
-    final mes = date.month.toString().padLeft(2, '0');
-    final ano = date.year.toString();
-    return '$dia/$mes/$ano';
-  }
-
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF2A2438),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  void _showCreateConfirmDialog() {
-    if (!_validateForm()) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF292535),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Confirmar Flashcard',
-                  style: TextStyle(
-                    color: Color(0xFFFBCB4E),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(12),
-                    border: const Border(
-                      left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _titleController.text.trim(),
-                        style: const TextStyle(
-                          color: Color(0xFFFBCB4E),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Frente:',
-                        style: TextStyle(
-                          color: Color(0xFFEBB2B6),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _previewTextBox(_frontController.text.trim()),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Verso:',
-                        style: TextStyle(
-                          color: Color(0xFFEBB2B6),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _previewTextBox(_backController.text.trim()),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          side: const BorderSide(color: Colors.grey),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _createFlashcard,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFBCB4E),
-                          foregroundColor: const Color(0xFF292535),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Salvar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEditDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF292535),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Editar Flashcard',
-                  style: TextStyle(
-                    color: Color(0xFFFBCB4E),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildInputField(
-                  label: 'Título *',
-                  controller: _titleController,
-                  hint: 'Ex: Fórmula de Bhaskara',
-                  maxLength: 50,
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  label: 'Frente *',
-                  controller: _frontController,
-                  hint: 'Pergunta ou conceito...',
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  label: 'Verso *',
-                  controller: _backController,
-                  hint: 'Resposta ou explicação...',
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _resetForm();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          side: const BorderSide(color: Colors.grey),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _updateFlashcard,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFBCB4E),
-                          foregroundColor: const Color(0xFF292535),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('Salvar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    int maxLines = 1,
-    int? maxLength,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFFBCB4E),
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white38),
-            filled: true,
-            fillColor: const Color(0xFF1A1A2E),
-            counterStyle: const TextStyle(color: Colors.white54),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFFBCB4E),
-                width: 2,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _previewTextBox(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2438),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white),
-      ),
     );
   }
 
@@ -624,256 +742,625 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     );
   }
 
-  bool get _canCreate =>
-      _titleController.text.trim().isNotEmpty &&
-      _frontController.text.trim().isNotEmpty &&
-      _backController.text.trim().isNotEmpty;
-
   @override
   Widget build(BuildContext context) {
+    final collection = _collection;
+
     return Scaffold(
       backgroundColor: const Color(0xFF171621),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171621),
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Flashcards',
-          style: TextStyle(
-            color: Color(0xFFFBCB4E),
-            fontWeight: FontWeight.bold,
-          ),
+  backgroundColor: const Color(0xFF171621),
+  elevation: 0,
+  leading: IconButton(
+    icon: const Icon(
+      Icons.arrow_back_ios_new_rounded,
+      color: Color(0xFFFBCB4E),
+    ),
+    onPressed: () => Navigator.of(context).pop(),
+  ),
+  title: Text(
+    collection?.titulo ?? 'Coleção',
+    style: const TextStyle(
+      color: Color(0xFFFBCB4E),
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateCardDialog,
+        backgroundColor: const Color(0xFFFBCB4E),
+        foregroundColor: const Color(0xFF292535),
+        icon: const Icon(Icons.add),
+        label: const Text(
+          'Flashcard',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFFFBCB4E),
           backgroundColor: const Color(0xFF292535),
-          onRefresh: _loadLocalFlashcards,
+          onRefresh: _loadCollection,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
             children: [
-              _buildEditorPanel(),
+              if (collection != null)
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF292535),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _SabidosSectionHeader(title: 'Detalhes da Coleção'),
+                      const SizedBox(height: 12),
+                      if (collection.descricao.trim().isNotEmpty)
+                        Text(
+                          collection.descricao,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            height: 1.45,
+                          ),
+                        ),
+                      if (collection.descricao.trim().isNotEmpty)
+                        const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _ActionChip(
+                            icon: Icons.layers,
+                            label: '${collection.flashcards.length} cards',
+                            color: Colors.lightBlueAccent,
+                            onTap: () {},
+                          ),
+                          _ActionChip(
+                            icon: Icons.play_arrow_rounded,
+                            label: 'Jogar',
+                            color: const Color(0xFF6BE38A),
+                            onTap: collection.flashcards.isEmpty
+                                ? () => _showSnack(
+                                    'Adicione ao menos 1 card para jogar.',
+                                  )
+                                : () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FlashcardGamePage(
+                                          collection: collection,
+                                        ),
+                                      ),
+                                    );
+                                    await _loadCollection();
+                                  },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 16),
-              _buildListPanel(),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF292535),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: _SabidosSectionHeader(
+                            title: 'Flashcards da Coleção',
+                          ),
+                        ),
+                        if (collection != null)
+                          Text(
+                            '${collection.flashcards.length} card(s)',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (_error.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.redAccent),
+                        ),
+                        child: Text(
+                          _error,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    if (_loading)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFFBCB4E),
+                          ),
+                        ),
+                      )
+                    else if (collection == null || collection.flashcards.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 28),
+                        child: Column(
+                          children: [
+                            Text('🃏', style: TextStyle(fontSize: 52)),
+                            SizedBox(height: 10),
+                            Text(
+                              'Nenhum flashcard nesta coleção.',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 18,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Crie seu primeiro card no botão abaixo.',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 13,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        itemCount: collection.flashcards.length,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, index) {
+                          final card = collection.flashcards[index];
+                          final isFlipped = _flipped.contains(card.id);
+
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () => _openBottomSheet(card),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isFlipped
+                                    ? const Color(0xFF2A2438)
+                                    : const Color(0xFF1A1A2E),
+                                borderRadius: BorderRadius.circular(18),
+                                border: const Border(
+                                  left: BorderSide(
+                                    color: Color(0xFFFBCB4E),
+                                    width: 4,
+                                  ),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          card.titulo,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Color(0xFFFBCB4E),
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white10,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          card.data,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    isFlipped ? card.verso : card.frente,
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _ActionChip(
+                                        icon: Icons.sync,
+                                        label: isFlipped ? 'Frente' : 'Verso',
+                                        color: Colors.lightBlueAccent,
+                                        onTap: () {
+                                          setState(() {
+                                            if (_flipped.contains(card.id)) {
+                                              _flipped.remove(card.id);
+                                            } else {
+                                              _flipped.add(card.id);
+                                            }
+                                          });
+                                        },
+                                      ),
+                                      _ActionChip(
+                                        icon: Icons.edit,
+                                        label: 'Editar',
+                                        color: Colors.blueAccent,
+                                        onTap: () => _editCard(card),
+                                      ),
+                                      _ActionChip(
+                                        icon: Icons.delete,
+                                        label: 'Excluir',
+                                        color: Colors.redAccent,
+                                        onTap: () => _deleteCard(card.id),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildEditorPanel() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF292535),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 12,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _MobileSectionHeader(title: 'Criar Flashcard'),
-          const SizedBox(height: 16),
-          _buildInputField(
-            label: 'Título *',
-            controller: _titleController,
-            hint: 'Ex: Fórmula de Bhaskara',
-            maxLength: 50,
-          ),
-          const SizedBox(height: 10),
-          _buildInputField(
-            label: 'Frente *',
-            controller: _frontController,
-            hint: 'Pergunta ou conceito...',
-            maxLines: 4,
-          ),
-          const SizedBox(height: 10),
-          _buildInputField(
-            label: 'Verso *',
-            controller: _backController,
-            hint: 'Resposta ou explicação...',
-            maxLines: 4,
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _canCreate ? _showCreateConfirmDialog : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFBCB4E),
-                foregroundColor: const Color(0xFF292535),
-                disabledBackgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Text(
-                'Criar Flashcard',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
-              borderRadius: BorderRadius.circular(14),
-              border: const Border(
-                left: BorderSide(color: Color(0xFF3085AA), width: 4),
-              ),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '💡 Dicas',
-                  style: TextStyle(
-                    color: Color(0xFF3085AA),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '• Use perguntas objetivas na frente\n'
-                  '• Respostas claras no verso\n'
-                  '• Revise regularmente',
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+class FlashcardGamePage extends StatefulWidget {
+  final FlashcardCollection collection;
 
-          // SQL FUTURO:
-          // Este painel pode permanecer igual.
-          // A troca será apenas nos métodos que hoje usam o repositório local.
-        ],
-      ),
-    );
+  const FlashcardGamePage({
+    super.key,
+    required this.collection,
+  });
+
+  @override
+  State<FlashcardGamePage> createState() => _FlashcardGamePageState();
+}
+
+class _FlashcardGamePageState extends State<FlashcardGamePage> {
+  late final List<FlashcardModel> _cards;
+  final TextEditingController _answerController = TextEditingController();
+
+  int _currentIndex = 0;
+  int _totalScore = 0;
+  bool _answered = false;
+  int _lastScore = 0;
+  String _feedbackTitle = '';
+  String _feedbackText = '';
+  String _normalizedExpected = '';
+
+  FlashcardModel get _currentCard => _cards[_currentIndex];
+
+  @override
+  void initState() {
+    super.initState();
+    _cards = List.from(widget.collection.flashcards);
   }
 
-  Widget _buildListPanel() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF292535),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 12,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
+  @override
+  void dispose() {
+    _answerController.dispose();
+    super.dispose();
+  }
+
+  String _normalize(String text) {
+    return text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  int _scoreAnswer(String userAnswer, String expectedAnswer) {
+    final user = _normalize(userAnswer);
+    final expected = _normalize(expectedAnswer);
+
+    if (user.isEmpty) return 0;
+    if (user == expected) return 100;
+    if (expected.contains(user) || user.contains(expected)) return 60;
+    return 0;
+  }
+
+  void _checkAnswer() {
+    if (_answered) return;
+
+    final typed = _answerController.text;
+    final expected = _currentCard.verso;
+    final score = _scoreAnswer(typed, expected);
+
+    String title;
+    String text;
+
+    if (score == 100) {
+      title = 'Acerto excelente';
+      text = 'Resposta correta. Você ganhou 100 pontos.';
+    } else if (score == 60) {
+      title = 'Quase lá';
+      text = 'Sua resposta chegou perto. Você ganhou 60 pontos.';
+    } else {
+      title = 'Não foi dessa vez';
+      text = 'A resposta esperada era mostrada abaixo.';
+    }
+
+    setState(() {
+      _answered = true;
+      _lastScore = score;
+      _totalScore += score;
+      _feedbackTitle = title;
+      _feedbackText = text;
+      _normalizedExpected = expected;
+    });
+  }
+
+  void _nextCard() {
+    if (_currentIndex == _cards.length - 1) {
+      _finishGame();
+      return;
+    }
+
+    setState(() {
+      _currentIndex++;
+      _answered = false;
+      _lastScore = 0;
+      _feedbackTitle = '';
+      _feedbackText = '';
+      _normalizedExpected = '';
+      _answerController.clear();
+    });
+  }
+
+  Future<void> _finishGame() async {
+    final maxScore = _cards.length * 100;
+    final percent = maxScore == 0 ? 0 : ((_totalScore / maxScore) * 100).round();
+
+    String medal;
+    String message;
+
+    if (percent >= 85) {
+      medal = '🏆';
+      message = 'Desempenho excelente. Você mandou muito bem!';
+    } else if (percent >= 60) {
+      medal = '🎯';
+      message = 'Bom desempenho. Continue revisando para subir ainda mais.';
+    } else {
+      medal = '📚';
+      message = 'Você já começou. Agora é revisar e tentar novamente.';
+    }
+
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: const Color(0xFF292535),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Expanded(
-                child: _MobileSectionHeader(title: 'Meus Flashcards'),
+              Text(medal, style: const TextStyle(fontSize: 52)),
+              const SizedBox(height: 12),
+              const Text(
+                'Resultado Final',
+                style: TextStyle(
+                  color: Color(0xFFFBCB4E),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 12),
               Text(
-                '${_flashcards.length} card(s)',
+                widget.collection.titulo,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
+                  color: Colors.white70,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(16),
+                  border: const Border(
+                    left: BorderSide(
+                      color: Color(0xFFFBCB4E),
+                      width: 4,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '$_totalScore pontos',
+                      style: const TextStyle(
+                        color: Color(0xFFFBCB4E),
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$percent% de aproveitamento',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBCB4E),
+                    foregroundColor: const Color(0xFF292535),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  child: const Text(
+                    'Voltar às coleções',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
           ),
-          if (_error.isNotEmpty) ...[
-            const SizedBox(height: 14),
+        ),
+      ),
+    );
+
+    if (shouldLeave == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (_currentIndex + 1) / _cards.length;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF171621),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF171621),
+        elevation: 0,
+        title: Text(
+          'Jogar • ${widget.collection.titulo}',
+          style: const TextStyle(
+            color: Color(0xFFFBCB4E),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.redAccent),
+                color: const Color(0xFF292535),
+                borderRadius: BorderRadius.circular(22),
               ),
-              child: Text(
-                _error,
-                style: const TextStyle(color: Colors.redAccent),
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFBCB4E),
-                ),
-              ),
-            )
-          else if (_flashcards.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '🃏',
-                    style: TextStyle(fontSize: 52),
+                  Row(
+                    children: [
+                      const Icon(Icons.psychology, color: Color(0xFFFBCB4E)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Card ${_currentIndex + 1} de ${_cards.length}',
+                          style: const TextStyle(
+                            color: Color(0xFFFBCB4E),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '$_totalScore pts',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Nenhum flashcard encontrado.',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.white10,
+                      valueColor: const AlwaysStoppedAnimation(
+                        Color(0xFFFBCB4E),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Crie seu primeiro card acima.',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                    ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
-            )
-          else
-            ListView.separated(
-              itemCount: _flashcards.length,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final flashcard = _flashcards[index];
-                final isFlipped = _flippedCards.contains(flashcard.id);
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => _openDetailsBottomSheet(flashcard),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF292535),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SabidosSectionHeader(title: 'Pergunta'),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: isFlipped
-                          ? const Color(0xFF2A2438)
-                          : const Color(0xFF1A1A2E),
-                      borderRadius: BorderRadius.circular(18),
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(16),
                       border: const Border(
                         left: BorderSide(
                           color: Color(0xFFFBCB4E),
@@ -881,96 +1368,694 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                         ),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                flashcard.titulo,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFFBCB4E),
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                flashcard.data,
-                                style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          isFlipped ? flashcard.verso : flashcard.frente,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            height: 1.45,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _smallActionButton(
-                              icon: Icons.sync,
-                              label: isFlipped ? 'Frente' : 'Verso',
-                              color: Colors.lightBlueAccent,
-                              onTap: () => _toggleFlip(flashcard.id),
-                            ),
-                            _smallActionButton(
-                              icon: Icons.edit,
-                              label: 'Editar',
-                              color: Colors.blueAccent,
-                              onTap: () => _handleEditClick(flashcard),
-                            ),
-                            _smallActionButton(
-                              icon: Icons.delete,
-                              label: 'Excluir',
-                              color: Colors.redAccent,
-                              onTap: () => _deleteFlashcard(flashcard.id),
-                            ),
-                          ],
-                        ),
-                      ],
+                    child: Text(
+                      _currentCard.frente,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sua resposta',
+                    style: TextStyle(
+                      color: Color(0xFFFBCB4E),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _answerController,
+                    enabled: !_answered,
+                    maxLines: 4,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Digite a resposta do verso do card...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: const Color(0xFF1A1A2E),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFFBCB4E),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_answered)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _lastScore == 100
+                            ? const Color(0xFF163222)
+                            : _lastScore == 60
+                                ? const Color(0xFF3B3215)
+                                : const Color(0xFF341A1A),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _lastScore == 100
+                              ? const Color(0xFF6BE38A)
+                              : _lastScore == 60
+                                  ? const Color(0xFFFBCB4E)
+                                  : Colors.redAccent,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$_feedbackTitle • +$_lastScore pts',
+                            style: TextStyle(
+                              color: _lastScore == 100
+                                  ? const Color(0xFF6BE38A)
+                                  : _lastScore == 60
+                                      ? const Color(0xFFFBCB4E)
+                                      : Colors.redAccent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _feedbackText,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Resposta esperada:',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _normalizedExpected,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _answered ? null : _checkAnswer,
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Corrigir'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFFBCB4E),
+                            side: const BorderSide(color: Color(0xFFFBCB4E)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _answered ? _nextCard : null,
+                          icon: Icon(
+                            _currentIndex == _cards.length - 1
+                                ? Icons.emoji_events
+                                : Icons.arrow_forward,
+                          ),
+                          label: Text(
+                            _currentIndex == _cards.length - 1
+                                ? 'Finalizar'
+                                : 'Próximo',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFBCB4E),
+                            foregroundColor: const Color(0xFF292535),
+                            disabledBackgroundColor: Colors.grey,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CreateCollectionDialog extends StatefulWidget {
+  const CreateCollectionDialog({super.key});
+
+  @override
+  State<CreateCollectionDialog> createState() => _CreateCollectionDialogState();
+}
+
+class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave => _titleController.text.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF292535),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Nova Coleção',
+                style: TextStyle(
+                  color: Color(0xFFFBCB4E),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _DialogInputField(
+                label: 'Título da coleção *',
+                controller: _titleController,
+                hint: 'Ex: Biologia - Citologia',
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _DialogInputField(
+                label: 'Descrição',
+                controller: _descriptionController,
+                hint: 'Ex: Revisão sobre organelas',
+                maxLines: 3,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _canSave
+                          ? () {
+                              Navigator.of(context).pop(
+                                CollectionFormData(
+                                  titulo: _titleController.text.trim(),
+                                  descricao: _descriptionController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFBCB4E),
+                        foregroundColor: const Color(0xFF292535),
+                        disabledBackgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Criar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CreateFlashcardDialog extends StatefulWidget {
+  const CreateFlashcardDialog({super.key});
+
+  @override
+  State<CreateFlashcardDialog> createState() => _CreateFlashcardDialogState();
+}
+
+class _CreateFlashcardDialogState extends State<CreateFlashcardDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _frontController;
+  late final TextEditingController _backController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _frontController = TextEditingController();
+    _backController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _frontController.dispose();
+    _backController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave =>
+      _titleController.text.trim().isNotEmpty &&
+      _frontController.text.trim().isNotEmpty &&
+      _backController.text.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF292535),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Novo Flashcard',
+                  style: TextStyle(
+                    color: Color(0xFFFBCB4E),
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _DialogInputField(
+                label: 'Título *',
+                controller: _titleController,
+                hint: 'Ex: Mitocôndria',
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _DialogInputField(
+                label: 'Frente *',
+                controller: _frontController,
+                hint: 'Pergunta ou conceito...',
+                maxLines: 4,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _DialogInputField(
+                label: 'Verso *',
+                controller: _backController,
+                hint: 'Resposta correta...',
+                maxLines: 4,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _canSave
+                          ? () {
+                              Navigator.of(context).pop(
+                                FlashcardFormData(
+                                  titulo: _titleController.text.trim(),
+                                  frente: _frontController.text.trim(),
+                                  verso: _backController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFBCB4E),
+                        foregroundColor: const Color(0xFF292535),
+                        disabledBackgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Salvar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class EditFlashcardDialog extends StatefulWidget {
+  final FlashcardModel card;
+
+  const EditFlashcardDialog({
+    super.key,
+    required this.card,
+  });
+
+  @override
+  State<EditFlashcardDialog> createState() => _EditFlashcardDialogState();
+}
+
+class _EditFlashcardDialogState extends State<EditFlashcardDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _frontController;
+  late final TextEditingController _backController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.card.titulo);
+    _frontController = TextEditingController(text: widget.card.frente);
+    _backController = TextEditingController(text: widget.card.verso);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _frontController.dispose();
+    _backController.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave =>
+      _titleController.text.trim().isNotEmpty &&
+      _frontController.text.trim().isNotEmpty &&
+      _backController.text.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF292535),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Editar Flashcard',
+                  style: TextStyle(
+                    color: Color(0xFFFBCB4E),
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _DialogInputField(
+                label: 'Título *',
+                controller: _titleController,
+                hint: 'Título',
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _DialogInputField(
+                label: 'Frente *',
+                controller: _frontController,
+                hint: 'Pergunta ou conceito...',
+                maxLines: 4,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              _DialogInputField(
+                label: 'Verso *',
+                controller: _backController,
+                hint: 'Resposta correta...',
+                maxLines: 4,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _canSave
+                          ? () {
+                              Navigator.of(context).pop(
+                                FlashcardFormData(
+                                  titulo: _titleController.text.trim(),
+                                  frente: _frontController.text.trim(),
+                                  verso: _backController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFBCB4E),
+                        foregroundColor: const Color(0xFF292535),
+                        disabledBackgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Salvar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogInputField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final int maxLines;
+
+  const _DialogInputField({
+    required this.label,
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFFBCB4E),
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          maxLines: maxLines,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white38),
+            filled: true,
+            fillColor: const Color(0xFF1A1A2E),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: Color(0xFFFBCB4E),
+                width: 2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SabidosSectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SabidosSectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 10),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Color(0xFFFBCB4E),
+            width: 2,
+          ),
+        ),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFFFBCB4E),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoBox extends StatelessWidget {
+  final String title;
+  final String text;
+
+  const _InfoBox({
+    required this.title,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(
+          left: BorderSide(color: Color(0xFF3085AA), width: 4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF3085AA),
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _smallActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+class _ActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -1001,31 +2086,56 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
   }
 }
 
-class _MobileSectionHeader extends StatelessWidget {
-  final String title;
+class CollectionFormData {
+  final String titulo;
+  final String descricao;
 
-  const _MobileSectionHeader({required this.title});
+  CollectionFormData({
+    required this.titulo,
+    required this.descricao,
+  });
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 10),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFFBCB4E),
-            width: 2,
-          ),
-        ),
-      ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFFFBCB4E),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+class FlashcardFormData {
+  final String titulo;
+  final String frente;
+  final String verso;
+
+  FlashcardFormData({
+    required this.titulo,
+    required this.frente,
+    required this.verso,
+  });
+}
+
+class FlashcardCollection {
+  final String id;
+  final String titulo;
+  final String descricao;
+  final DateTime criadoEm;
+  final List<FlashcardModel> flashcards;
+
+  FlashcardCollection({
+    required this.id,
+    required this.titulo,
+    required this.descricao,
+    required this.criadoEm,
+    required this.flashcards,
+  });
+
+  FlashcardCollection copyWith({
+    String? id,
+    String? titulo,
+    String? descricao,
+    DateTime? criadoEm,
+    List<FlashcardModel>? flashcards,
+  }) {
+    return FlashcardCollection(
+      id: id ?? this.id,
+      titulo: titulo ?? this.titulo,
+      descricao: descricao ?? this.descricao,
+      criadoEm: criadoEm ?? this.criadoEm,
+      flashcards: flashcards ?? this.flashcards,
     );
   }
 }
@@ -1068,60 +2178,94 @@ class FlashcardModel {
       atualizadoEm: atualizadoEm ?? this.atualizadoEm,
     );
   }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'titulo': titulo,
-      'frente': frente,
-      'verso': verso,
-      'data': data,
-      'createdAt': createdAt.toIso8601String(),
-      'atualizadoEm': atualizadoEm?.toIso8601String(),
-    };
-  }
-
-  factory FlashcardModel.fromMap(Map<String, dynamic> map) {
-    return FlashcardModel(
-      id: map['id'],
-      titulo: map['titulo'],
-      frente: map['frente'],
-      verso: map['verso'],
-      data: map['data'],
-      createdAt: DateTime.parse(map['createdAt']),
-      atualizadoEm: map['atualizadoEm'] != null
-          ? DateTime.parse(map['atualizadoEm'])
-          : null,
-    );
-  }
 }
 
-class LocalFlashcardRepository {
-  final List<FlashcardModel> _memoryDb = [];
+class LocalFlashcardsRepository {
+  final List<FlashcardCollection> _collections = [];
 
-  Future<List<FlashcardModel>> getFlashcards() async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    return List.from(_memoryDb);
+  Future<List<FlashcardCollection>> getCollections() async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    return List.from(_collections);
   }
 
-  Future<void> addFlashcard(FlashcardModel card) async {
+  Future<FlashcardCollection?> getCollectionById(String id) async {
     await Future.delayed(const Duration(milliseconds: 120));
-    _memoryDb.add(card);
-  }
-
-  Future<void> updateFlashcard(FlashcardModel updatedCard) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    final index = _memoryDb.indexWhere((item) => item.id == updatedCard.id);
-    if (index != -1) {
-      _memoryDb[index] = updatedCard;
+    try {
+      return _collections.firstWhere((c) => c.id == id);
+    } catch (_) {
+      return null;
     }
   }
 
-  Future<void> deleteFlashcard(String id) async {
+  Future<void> addCollection(FlashcardCollection collection) async {
     await Future.delayed(const Duration(milliseconds: 120));
-    _memoryDb.removeWhere((item) => item.id == id);
+    _collections.add(collection);
   }
 
-  // SQL FUTURO:
-  // Trocar este repositório local por um serviço que converse com seu backend SQL.
+  Future<void> deleteCollection(String collectionId) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    _collections.removeWhere((c) => c.id == collectionId);
+  }
+
+  Future<void> addCardToCollection(
+    String collectionId,
+    FlashcardModel card,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+
+    final index = _collections.indexWhere((c) => c.id == collectionId);
+    if (index == -1) return;
+
+    final updatedCards = List<FlashcardModel>.from(
+      _collections[index].flashcards,
+    )..add(card);
+
+    _collections[index] = _collections[index].copyWith(
+      flashcards: updatedCards,
+    );
+  }
+
+  Future<void> updateCardInCollection(
+    String collectionId,
+    FlashcardModel updatedCard,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+
+    final collectionIndex = _collections.indexWhere(
+      (c) => c.id == collectionId,
+    );
+    if (collectionIndex == -1) return;
+
+    final cards = List<FlashcardModel>.from(
+      _collections[collectionIndex].flashcards,
+    );
+    final cardIndex = cards.indexWhere((c) => c.id == updatedCard.id);
+    if (cardIndex == -1) return;
+
+    cards[cardIndex] = updatedCard;
+
+    _collections[collectionIndex] = _collections[collectionIndex].copyWith(
+      flashcards: cards,
+    );
+  }
+
+  Future<void> deleteCardFromCollection(
+    String collectionId,
+    String cardId,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+
+    final collectionIndex = _collections.indexWhere(
+      (c) => c.id == collectionId,
+    );
+    if (collectionIndex == -1) return;
+
+    final cards = List<FlashcardModel>.from(
+      _collections[collectionIndex].flashcards,
+    )..removeWhere((c) => c.id == cardId);
+
+    _collections[collectionIndex] = _collections[collectionIndex].copyWith(
+      flashcards: cards,
+    );
+  }
 }
