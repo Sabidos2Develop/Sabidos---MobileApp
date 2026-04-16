@@ -1,4 +1,14 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+
+import 'package:sabidos2app/data/repositories/local_flashcards_repository.dart';
+import 'package:sabidos2app/domain/models/flashcard_collection.dart';
+import 'package:sabidos2app/domain/models/flashcard_model.dart';
+import 'package:sabidos2app/presentation/dialogs/create_collection_dialog.dart';
+import 'package:sabidos2app/presentation/dialogs/create_flashcard_dialog.dart';
+import 'package:sabidos2app/presentation/dialogs/edit_flashcard_dialog.dart';
+import 'package:sabidos2app/presentation/dialogs/start_game_dialog.dart';
+
 
 class FlashcardsPage extends StatefulWidget {
   const FlashcardsPage({super.key});
@@ -22,6 +32,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
   Future<void> _loadCollections() async {
     if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = '';
@@ -35,7 +46,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
         _collections = data;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Falha ao carregar coleções.';
@@ -87,7 +98,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
       if (!mounted) return;
       _showSnack('Coleção criada com sucesso!');
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Erro ao criar coleção.';
@@ -139,7 +150,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CollectionDetailsPage(
+        builder: (_) => _CollectionDetailsView(
           collectionId: collection.id,
           repository: _repository,
         ),
@@ -155,10 +166,21 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       return;
     }
 
+    final config = await showDialog<StartGameConfig>(
+      context: context,
+      builder: (_) => StartGameDialog(maxCards: collection.flashcards.length),
+    );
+
+    if (config == null) return;
+    if (!mounted) return;
+
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FlashcardGamePage(collection: collection),
+        builder: (_) => _FlashcardGameView(
+          collection: collection,
+          quantidadeDeCards: config.quantidade,
+        ),
       ),
     );
 
@@ -226,7 +248,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SabidosSectionHeader(title: 'Baralhos de Estudo'),
+          _SectionHeader(title: 'Baralhos de Estudo'),
           SizedBox(height: 14),
           Text(
             'Crie coleções de flashcards por tema, organize seu estudo e entre no modo Jogar para testar sua memória.',
@@ -240,7 +262,11 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
           _InfoBox(
             title: '💡 Como funciona',
             text:
-                '• Crie uma coleção\n• Adicione seus cards\n• Toque em Jogar\n• Responda o verso do card\n• Veja sua pontuação final',
+                '• Crie uma coleção\n'
+                '• Adicione seus cards\n'
+                '• Escolha quantos cards quer jogar\n'
+                '• Responda os cards embaralhados\n'
+                '• Receba pontos conforme a dificuldade',
           ),
         ],
       ),
@@ -266,7 +292,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
           Row(
             children: [
               const Expanded(
-                child: _SabidosSectionHeader(title: 'Minhas Coleções'),
+                child: _SectionHeader(title: 'Minhas Coleções'),
               ),
               Text(
                 '${_collections.length} coleção(ões)',
@@ -445,21 +471,20 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
   }
 }
 
-class CollectionDetailsPage extends StatefulWidget {
+class _CollectionDetailsView extends StatefulWidget {
   final String collectionId;
   final LocalFlashcardsRepository repository;
 
-  const CollectionDetailsPage({
-    super.key,
+  const _CollectionDetailsView({
     required this.collectionId,
     required this.repository,
   });
 
   @override
-  State<CollectionDetailsPage> createState() => _CollectionDetailsPageState();
+  State<_CollectionDetailsView> createState() => _CollectionDetailsViewState();
 }
 
-class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
+class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
   FlashcardCollection? _collection;
   bool _loading = true;
   String _error = '';
@@ -473,6 +498,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
 
   Future<void> _loadCollection() async {
     if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = '';
@@ -488,7 +514,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
         _collection = collection;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Falha ao carregar coleção.';
@@ -536,6 +562,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
         data: _shortDate(DateTime.now()),
         createdAt: DateTime.now(),
         atualizadoEm: null,
+        dificuldade: result.dificuldade,
       ),
     );
 
@@ -560,6 +587,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
         verso: result.verso,
         data: _shortDate(DateTime.now()),
         atualizadoEm: DateTime.now(),
+        dificuldade: result.dificuldade,
       ),
     );
 
@@ -610,6 +638,33 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     _showSnack('Flashcard excluído.');
   }
 
+  Future<void> _startGame(FlashcardCollection collection) async {
+    if (collection.flashcards.isEmpty) {
+      _showSnack('Adicione ao menos 1 card para jogar.');
+      return;
+    }
+
+    final config = await showDialog<StartGameConfig>(
+      context: context,
+      builder: (_) => StartGameDialog(maxCards: collection.flashcards.length),
+    );
+
+    if (config == null) return;
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _FlashcardGameView(
+          collection: collection,
+          quantidadeDeCards: config.quantidade,
+        ),
+      ),
+    );
+
+    await _loadCollection();
+  }
+
   void _openBottomSheet(FlashcardModel card) {
     showModalBottomSheet(
       context: context,
@@ -655,6 +710,28 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                     _detailBlock('Frente', card.frente),
                     const SizedBox(height: 16),
                     _detailBlock('Verso', card.verso),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBCB4E).withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFFBCB4E).withOpacity(0.25),
+                        ),
+                      ),
+                      child: Text(
+                        'Dificuldade: ${card.dificuldade.label} • x${card.dificuldade.multiplier}',
+                        style: const TextStyle(
+                          color: Color(0xFFFBCB4E),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
@@ -749,23 +826,23 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF171621),
       appBar: AppBar(
-  backgroundColor: const Color(0xFF171621),
-  elevation: 0,
-  leading: IconButton(
-    icon: const Icon(
-      Icons.arrow_back_ios_new_rounded,
-      color: Color(0xFFFBCB4E),
-    ),
-    onPressed: () => Navigator.of(context).pop(),
-  ),
-  title: Text(
-    collection?.titulo ?? 'Coleção',
-    style: const TextStyle(
-      color: Color(0xFFFBCB4E),
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
+        backgroundColor: const Color(0xFF171621),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Color(0xFFFBCB4E),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          collection?.titulo ?? 'Coleção',
+          style: const TextStyle(
+            color: Color(0xFFFBCB4E),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateCardDialog,
         backgroundColor: const Color(0xFFFBCB4E),
@@ -794,7 +871,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _SabidosSectionHeader(title: 'Detalhes da Coleção'),
+                      const _SectionHeader(title: 'Detalhes da Coleção'),
                       const SizedBox(height: 12),
                       if (collection.descricao.trim().isNotEmpty)
                         Text(
@@ -821,21 +898,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                             icon: Icons.play_arrow_rounded,
                             label: 'Jogar',
                             color: const Color(0xFF6BE38A),
-                            onTap: collection.flashcards.isEmpty
-                                ? () => _showSnack(
-                                    'Adicione ao menos 1 card para jogar.',
-                                  )
-                                : () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => FlashcardGamePage(
-                                          collection: collection,
-                                        ),
-                                      ),
-                                    );
-                                    await _loadCollection();
-                                  },
+                            onTap: () => _startGame(collection),
                           ),
                         ],
                       ),
@@ -854,7 +917,7 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                     Row(
                       children: [
                         const Expanded(
-                          child: _SabidosSectionHeader(
+                          child: _SectionHeader(
                             title: 'Flashcards da Coleção',
                           ),
                         ),
@@ -997,6 +1060,30 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
                                       height: 1.45,
                                     ),
                                   ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFBCB4E)
+                                          .withOpacity(0.10),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: const Color(0xFFFBCB4E)
+                                            .withOpacity(0.25),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Dificuldade: ${card.dificuldade.label} • x${card.dificuldade.multiplier}',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFBCB4E),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                   const SizedBox(height: 12),
                                   Wrap(
                                     spacing: 8,
@@ -1047,19 +1134,20 @@ class _CollectionDetailsPageState extends State<CollectionDetailsPage> {
   }
 }
 
-class FlashcardGamePage extends StatefulWidget {
+class _FlashcardGameView extends StatefulWidget {
   final FlashcardCollection collection;
+  final int quantidadeDeCards;
 
-  const FlashcardGamePage({
-    super.key,
+  const _FlashcardGameView({
     required this.collection,
+    required this.quantidadeDeCards,
   });
 
   @override
-  State<FlashcardGamePage> createState() => _FlashcardGamePageState();
+  State<_FlashcardGameView> createState() => _FlashcardGameViewState();
 }
 
-class _FlashcardGamePageState extends State<FlashcardGamePage> {
+class _FlashcardGameViewState extends State<_FlashcardGameView> {
   late final List<FlashcardModel> _cards;
   final TextEditingController _answerController = TextEditingController();
 
@@ -1076,7 +1164,10 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
   @override
   void initState() {
     super.initState();
-    _cards = List.from(widget.collection.flashcards);
+    final shuffled = List<FlashcardModel>.from(widget.collection.flashcards);
+    shuffled.shuffle(Random());
+
+    _cards = shuffled.take(widget.quantidadeDeCards).toList();
   }
 
   @override
@@ -1104,17 +1195,20 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
 
     final typed = _answerController.text;
     final expected = _currentCard.verso;
-    final score = _scoreAnswer(typed, expected);
+    final base = _scoreAnswer(typed, expected);
+    final score = base * _currentCard.dificuldade.multiplier;
 
     String title;
     String text;
 
-    if (score == 100) {
+    if (base == 100) {
       title = 'Acerto excelente';
-      text = 'Resposta correta. Você ganhou 100 pontos.';
-    } else if (score == 60) {
+      text =
+          'Resposta correta. $base x ${_currentCard.dificuldade.multiplier} = $score pontos.';
+    } else if (base == 60) {
       title = 'Quase lá';
-      text = 'Sua resposta chegou perto. Você ganhou 60 pontos.';
+      text =
+          'Sua resposta chegou perto. $base x ${_currentCard.dificuldade.multiplier} = $score pontos.';
     } else {
       title = 'Não foi dessa vez';
       text = 'A resposta esperada era mostrada abaixo.';
@@ -1148,7 +1242,11 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
   }
 
   Future<void> _finishGame() async {
-    final maxScore = _cards.length * 100;
+    final maxScore = _cards.fold<int>(
+      0,
+      (sum, card) => sum + (100 * card.dificuldade.multiplier),
+    );
+
     final percent = maxScore == 0 ? 0 : ((_totalScore / maxScore) * 100).round();
 
     String medal;
@@ -1277,6 +1375,13 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF171621),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Color(0xFFFBCB4E),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           'Jogar • ${widget.collection.titulo}',
           style: const TextStyle(
@@ -1353,7 +1458,7 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SabidosSectionHeader(title: 'Pergunta'),
+                  const _SectionHeader(title: 'Pergunta'),
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
@@ -1368,13 +1473,40 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
                         ),
                       ),
                     ),
-                    child: Text(
-                      _currentCard.frente,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentCard.frente,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFBCB4E).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFFBCB4E).withOpacity(0.35),
+                            ),
+                          ),
+                          child: Text(
+                            'Dificuldade: ${_currentCard.dificuldade.label} • x${_currentCard.dificuldade.multiplier}',
+                            style: const TextStyle(
+                              color: Color(0xFFFBCB4E),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -1424,18 +1556,14 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _lastScore == 100
+                        color: _lastScore > 0
                             ? const Color(0xFF163222)
-                            : _lastScore == 60
-                                ? const Color(0xFF3B3215)
-                                : const Color(0xFF341A1A),
+                            : const Color(0xFF341A1A),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: _lastScore == 100
+                          color: _lastScore > 0
                               ? const Color(0xFF6BE38A)
-                              : _lastScore == 60
-                                  ? const Color(0xFFFBCB4E)
-                                  : Colors.redAccent,
+                              : Colors.redAccent,
                         ),
                       ),
                       child: Column(
@@ -1444,11 +1572,9 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
                           Text(
                             '$_feedbackTitle • +$_lastScore pts',
                             style: TextStyle(
-                              color: _lastScore == 100
+                              color: _lastScore > 0
                                   ? const Color(0xFF6BE38A)
-                                  : _lastScore == 60
-                                      ? const Color(0xFFFBCB4E)
-                                      : Colors.redAccent,
+                                  : Colors.redAccent,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1531,444 +1657,10 @@ class _FlashcardGamePageState extends State<FlashcardGamePage> {
   }
 }
 
-class CreateCollectionDialog extends StatefulWidget {
-  const CreateCollectionDialog({super.key});
-
-  @override
-  State<CreateCollectionDialog> createState() => _CreateCollectionDialogState();
-}
-
-class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _descriptionController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  bool get _canSave => _titleController.text.trim().isNotEmpty;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF292535),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Nova Coleção',
-                style: TextStyle(
-                  color: Color(0xFFFBCB4E),
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _DialogInputField(
-                label: 'Título da coleção *',
-                controller: _titleController,
-                hint: 'Ex: Biologia - Citologia',
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _DialogInputField(
-                label: 'Descrição',
-                controller: _descriptionController,
-                hint: 'Ex: Revisão sobre organelas',
-                maxLines: 3,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _canSave
-                          ? () {
-                              Navigator.of(context).pop(
-                                CollectionFormData(
-                                  titulo: _titleController.text.trim(),
-                                  descricao: _descriptionController.text.trim(),
-                                ),
-                              );
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBCB4E),
-                        foregroundColor: const Color(0xFF292535),
-                        disabledBackgroundColor: Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Criar'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CreateFlashcardDialog extends StatefulWidget {
-  const CreateFlashcardDialog({super.key});
-
-  @override
-  State<CreateFlashcardDialog> createState() => _CreateFlashcardDialogState();
-}
-
-class _CreateFlashcardDialogState extends State<CreateFlashcardDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _frontController;
-  late final TextEditingController _backController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _frontController = TextEditingController();
-    _backController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _frontController.dispose();
-    _backController.dispose();
-    super.dispose();
-  }
-
-  bool get _canSave =>
-      _titleController.text.trim().isNotEmpty &&
-      _frontController.text.trim().isNotEmpty &&
-      _backController.text.trim().isNotEmpty;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF292535),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Novo Flashcard',
-                  style: TextStyle(
-                    color: Color(0xFFFBCB4E),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              _DialogInputField(
-                label: 'Título *',
-                controller: _titleController,
-                hint: 'Ex: Mitocôndria',
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _DialogInputField(
-                label: 'Frente *',
-                controller: _frontController,
-                hint: 'Pergunta ou conceito...',
-                maxLines: 4,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _DialogInputField(
-                label: 'Verso *',
-                controller: _backController,
-                hint: 'Resposta correta...',
-                maxLines: 4,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _canSave
-                          ? () {
-                              Navigator.of(context).pop(
-                                FlashcardFormData(
-                                  titulo: _titleController.text.trim(),
-                                  frente: _frontController.text.trim(),
-                                  verso: _backController.text.trim(),
-                                ),
-                              );
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBCB4E),
-                        foregroundColor: const Color(0xFF292535),
-                        disabledBackgroundColor: Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Salvar'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class EditFlashcardDialog extends StatefulWidget {
-  final FlashcardModel card;
-
-  const EditFlashcardDialog({
-    super.key,
-    required this.card,
-  });
-
-  @override
-  State<EditFlashcardDialog> createState() => _EditFlashcardDialogState();
-}
-
-class _EditFlashcardDialogState extends State<EditFlashcardDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _frontController;
-  late final TextEditingController _backController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.card.titulo);
-    _frontController = TextEditingController(text: widget.card.frente);
-    _backController = TextEditingController(text: widget.card.verso);
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _frontController.dispose();
-    _backController.dispose();
-    super.dispose();
-  }
-
-  bool get _canSave =>
-      _titleController.text.trim().isNotEmpty &&
-      _frontController.text.trim().isNotEmpty &&
-      _backController.text.trim().isNotEmpty;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF292535),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Editar Flashcard',
-                  style: TextStyle(
-                    color: Color(0xFFFBCB4E),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              _DialogInputField(
-                label: 'Título *',
-                controller: _titleController,
-                hint: 'Título',
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _DialogInputField(
-                label: 'Frente *',
-                controller: _frontController,
-                hint: 'Pergunta ou conceito...',
-                maxLines: 4,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _DialogInputField(
-                label: 'Verso *',
-                controller: _backController,
-                hint: 'Resposta correta...',
-                maxLines: 4,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _canSave
-                          ? () {
-                              Navigator.of(context).pop(
-                                FlashcardFormData(
-                                  titulo: _titleController.text.trim(),
-                                  frente: _frontController.text.trim(),
-                                  verso: _backController.text.trim(),
-                                ),
-                              );
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBCB4E),
-                        foregroundColor: const Color(0xFF292535),
-                        disabledBackgroundColor: Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Salvar'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogInputField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final String hint;
-  final ValueChanged<String> onChanged;
-  final int maxLines;
-
-  const _DialogInputField({
-    required this.label,
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.maxLines = 1,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFFBCB4E),
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          onChanged: onChanged,
-          maxLines: maxLines,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white38),
-            filled: true,
-            fillColor: const Color(0xFF1A1A2E),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFFBCB4E),
-                width: 2,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SabidosSectionHeader extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String title;
 
-  const _SabidosSectionHeader({required this.title});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -2082,190 +1774,6 @@ class _ActionChip extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class CollectionFormData {
-  final String titulo;
-  final String descricao;
-
-  CollectionFormData({
-    required this.titulo,
-    required this.descricao,
-  });
-}
-
-class FlashcardFormData {
-  final String titulo;
-  final String frente;
-  final String verso;
-
-  FlashcardFormData({
-    required this.titulo,
-    required this.frente,
-    required this.verso,
-  });
-}
-
-class FlashcardCollection {
-  final String id;
-  final String titulo;
-  final String descricao;
-  final DateTime criadoEm;
-  final List<FlashcardModel> flashcards;
-
-  FlashcardCollection({
-    required this.id,
-    required this.titulo,
-    required this.descricao,
-    required this.criadoEm,
-    required this.flashcards,
-  });
-
-  FlashcardCollection copyWith({
-    String? id,
-    String? titulo,
-    String? descricao,
-    DateTime? criadoEm,
-    List<FlashcardModel>? flashcards,
-  }) {
-    return FlashcardCollection(
-      id: id ?? this.id,
-      titulo: titulo ?? this.titulo,
-      descricao: descricao ?? this.descricao,
-      criadoEm: criadoEm ?? this.criadoEm,
-      flashcards: flashcards ?? this.flashcards,
-    );
-  }
-}
-
-class FlashcardModel {
-  final String id;
-  final String titulo;
-  final String frente;
-  final String verso;
-  final String data;
-  final DateTime createdAt;
-  final DateTime? atualizadoEm;
-
-  FlashcardModel({
-    required this.id,
-    required this.titulo,
-    required this.frente,
-    required this.verso,
-    required this.data,
-    required this.createdAt,
-    this.atualizadoEm,
-  });
-
-  FlashcardModel copyWith({
-    String? id,
-    String? titulo,
-    String? frente,
-    String? verso,
-    String? data,
-    DateTime? createdAt,
-    DateTime? atualizadoEm,
-  }) {
-    return FlashcardModel(
-      id: id ?? this.id,
-      titulo: titulo ?? this.titulo,
-      frente: frente ?? this.frente,
-      verso: verso ?? this.verso,
-      data: data ?? this.data,
-      createdAt: createdAt ?? this.createdAt,
-      atualizadoEm: atualizadoEm ?? this.atualizadoEm,
-    );
-  }
-}
-
-class LocalFlashcardsRepository {
-  final List<FlashcardCollection> _collections = [];
-
-  Future<List<FlashcardCollection>> getCollections() async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    return List.from(_collections);
-  }
-
-  Future<FlashcardCollection?> getCollectionById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    try {
-      return _collections.firstWhere((c) => c.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> addCollection(FlashcardCollection collection) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    _collections.add(collection);
-  }
-
-  Future<void> deleteCollection(String collectionId) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    _collections.removeWhere((c) => c.id == collectionId);
-  }
-
-  Future<void> addCardToCollection(
-    String collectionId,
-    FlashcardModel card,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-
-    final index = _collections.indexWhere((c) => c.id == collectionId);
-    if (index == -1) return;
-
-    final updatedCards = List<FlashcardModel>.from(
-      _collections[index].flashcards,
-    )..add(card);
-
-    _collections[index] = _collections[index].copyWith(
-      flashcards: updatedCards,
-    );
-  }
-
-  Future<void> updateCardInCollection(
-    String collectionId,
-    FlashcardModel updatedCard,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-
-    final collectionIndex = _collections.indexWhere(
-      (c) => c.id == collectionId,
-    );
-    if (collectionIndex == -1) return;
-
-    final cards = List<FlashcardModel>.from(
-      _collections[collectionIndex].flashcards,
-    );
-    final cardIndex = cards.indexWhere((c) => c.id == updatedCard.id);
-    if (cardIndex == -1) return;
-
-    cards[cardIndex] = updatedCard;
-
-    _collections[collectionIndex] = _collections[collectionIndex].copyWith(
-      flashcards: cards,
-    );
-  }
-
-  Future<void> deleteCardFromCollection(
-    String collectionId,
-    String cardId,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-
-    final collectionIndex = _collections.indexWhere(
-      (c) => c.id == collectionId,
-    );
-    if (collectionIndex == -1) return;
-
-    final cards = List<FlashcardModel>.from(
-      _collections[collectionIndex].flashcards,
-    )..removeWhere((c) => c.id == cardId);
-
-    _collections[collectionIndex] = _collections[collectionIndex].copyWith(
-      flashcards: cards,
     );
   }
 }
