@@ -41,7 +41,7 @@ class AuthPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(50),
                     ),
                     splashBorderRadius: BorderRadius.circular(50),
-                    overlayColor: MaterialStateProperty.all(Colors.transparent),
+                    overlayColor: WidgetStateProperty.all(Colors.transparent),
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.black,
                     unselectedLabelColor: Colors.white,

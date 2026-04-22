@@ -38,10 +38,6 @@ class AuthService {
 
     final account = await googleSignIn.authenticate();
 
-    if (account == null) {
-      throw Exception("Login cancelado");
-    }
-
     final idToken = account.authentication.idToken;
 
     if (idToken == null) {

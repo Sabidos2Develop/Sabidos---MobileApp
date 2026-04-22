@@ -9,7 +9,6 @@ import 'package:sabidos2app/presentation/dialogs/create_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/edit_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/start_game_dialog.dart';
 
-
 class FlashcardsPage extends StatefulWidget {
   const FlashcardsPage({super.key});
 
@@ -61,10 +60,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF2A2438),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -252,11 +248,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
           SizedBox(height: 14),
           Text(
             'Crie coleções de flashcards por tema, organize seu estudo e entre no modo Jogar para testar sua memória.',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 13,
-              height: 1.5,
-            ),
+            style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
           ),
           SizedBox(height: 14),
           _InfoBox(
@@ -291,15 +283,10 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: _SectionHeader(title: 'Minhas Coleções'),
-              ),
+              const Expanded(child: _SectionHeader(title: 'Minhas Coleções')),
               Text(
                 '${_collections.length} coleção(ões)',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ],
           ),
@@ -324,9 +311,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFBCB4E),
-                ),
+                child: CircularProgressIndicator(color: Color(0xFFFBCB4E)),
               ),
             )
           else if (_collections.isEmpty)
@@ -338,19 +323,13 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                   SizedBox(height: 10),
                   Text(
                     'Nenhuma coleção encontrada.',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 18),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 6),
                   Text(
                     'Crie sua primeira coleção no botão abaixo.',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.white38, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -361,7 +340,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
               itemCount: _collections.length,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (_, index) {
                 final collection = _collections[index];
 
@@ -374,10 +353,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                       color: const Color(0xFF1A1A2E),
                       borderRadius: BorderRadius.circular(18),
                       border: const Border(
-                        left: BorderSide(
-                          color: Color(0xFFFBCB4E),
-                          width: 4,
-                        ),
+                        left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
                       ),
                     ),
                     child: Column(
@@ -529,10 +505,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF2A2438),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -917,9 +890,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                     Row(
                       children: [
                         const Expanded(
-                          child: _SectionHeader(
-                            title: 'Flashcards da Coleção',
-                          ),
+                          child: _SectionHeader(title: 'Flashcards da Coleção'),
                         ),
                         if (collection != null)
                           Text(
@@ -957,7 +928,8 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                           ),
                         ),
                       )
-                    else if (collection == null || collection.flashcards.isEmpty)
+                    else if (collection == null ||
+                        collection.flashcards.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 28),
                         child: Column(
@@ -989,7 +961,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                         itemCount: collection.flashcards.length,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (_, index) {
                           final card = collection.flashcards[index];
                           final isFlipped = _flipped.contains(card.id);
@@ -1036,8 +1008,9 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.white10,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: Text(
                                           card.data,
@@ -1067,12 +1040,14 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFBCB4E)
-                                          .withOpacity(0.10),
+                                      color: const Color(
+                                        0xFFFBCB4E,
+                                      ).withOpacity(0.10),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: const Color(0xFFFBCB4E)
-                                            .withOpacity(0.25),
+                                        color: const Color(
+                                          0xFFFBCB4E,
+                                        ).withOpacity(0.25),
                                       ),
                                     ),
                                     child: Text(
@@ -1247,7 +1222,9 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
       (sum, card) => sum + (100 * card.dificuldade.multiplier),
     );
 
-    final percent = maxScore == 0 ? 0 : ((_totalScore / maxScore) * 100).round();
+    final percent = maxScore == 0
+        ? 0
+        : ((_totalScore / maxScore) * 100).round();
 
     String medal;
     String message;
@@ -1267,9 +1244,7 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: const Color(0xFF292535),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -1289,10 +1264,7 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
               Text(
                 widget.collection.titulo,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
               const SizedBox(height: 18),
               Container(
@@ -1302,10 +1274,7 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
                   color: const Color(0xFF1A1A2E),
                   borderRadius: BorderRadius.circular(16),
                   border: const Border(
-                    left: BorderSide(
-                      color: Color(0xFFFBCB4E),
-                      width: 4,
-                    ),
+                    left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
                   ),
                 ),
                 child: Column(
@@ -1467,10 +1436,7 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
                       color: const Color(0xFF1A1A2E),
                       borderRadius: BorderRadius.circular(16),
                       border: const Border(
-                        left: BorderSide(
-                          color: Color(0xFFFBCB4E),
-                          width: 4,
-                        ),
+                        left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
                       ),
                     ),
                     child: Column(
@@ -1667,12 +1633,7 @@ class _SectionHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(bottom: 10),
       decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFFBCB4E),
-            width: 2,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFFBCB4E), width: 2)),
       ),
       child: Text(
         title,
@@ -1690,10 +1651,7 @@ class _InfoBox extends StatelessWidget {
   final String title;
   final String text;
 
-  const _InfoBox({
-    required this.title,
-    required this.text,
-  });
+  const _InfoBox({required this.title, required this.text});
 
   @override
   Widget build(BuildContext context) {

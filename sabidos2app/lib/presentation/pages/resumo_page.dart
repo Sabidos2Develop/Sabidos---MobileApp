@@ -5,6 +5,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:sabidos2app/domain/models/resumo.dart';
 
 class ResumoPage extends StatefulWidget {
+  const ResumoPage({super.key});
+
   @override
   _ResumoPageState createState() => _ResumoPageState();
 }
@@ -47,8 +49,9 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   Future<void> salvarResumo() async {
-    if (_tituloController.text.isEmpty || _descricaoController.text.isEmpty)
+    if (_tituloController.text.isEmpty || _descricaoController.text.isEmpty) {
       return;
+    }
 
     await _db.collection('resumos').add({
       "userId": userId,
@@ -121,9 +124,9 @@ class _ResumoPageState extends State<ResumoPage> {
 
   void alternarFonte() {
     setState(() {
-      if (tamanhoFonte == "sm")
+      if (tamanhoFonte == "sm") {
         tamanhoFonte = "base";
-      else if (tamanhoFonte == "base")
+      } else if (tamanhoFonte == "base")
         tamanhoFonte = "lg";
       else
         tamanhoFonte = "sm";

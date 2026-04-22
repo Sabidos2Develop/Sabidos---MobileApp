@@ -9,8 +9,8 @@ class StudyTimeCard extends StatelessWidget {
   String formatTime(int s) {
     final h = s ~/ 3600;
     final m = (s % 3600) ~/ 60;
-    if (h > 0) return "${h} H";
-    return "${m} min";
+    if (h > 0) return "$h H";
+    return "$m min";
   }
 
   @override
@@ -34,16 +34,22 @@ class StudyTimeCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          const Text("Você estudou por:",
-              style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold)),
+          const Text(
+            "Você estudou por:",
+            style: TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
 
           Text(
             formatTime(seconds),
             style: const TextStyle(
-                fontSize: 40,
-                color: AppColors.text,
-                fontWeight: FontWeight.bold),
-          )
+              fontSize: 40,
+              color: AppColors.text,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );

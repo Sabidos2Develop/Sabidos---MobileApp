@@ -127,7 +127,7 @@ class _LoginTabState extends State<LoginTab> {
                       await auth.loginWithGoogle();
                     } catch (e) {
                       if (!mounted) return;
-
+                      print("ERRO GOOGLE: $e");
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text("Erro ao entrar com Google"),
