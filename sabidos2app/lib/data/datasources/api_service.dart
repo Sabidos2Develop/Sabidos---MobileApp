@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:sabidos2app/domain/models/User.dart';
+import 'package:sabidos2app/domain/models/Evento.dart';
+import 'package:sabidos2app/domain/models/Pomodoro.dart';
 
 class ApiService {
   final Dio _dio = Dio(
@@ -19,47 +22,39 @@ class ApiService {
   }
 }
 
-
 class UserApiService {
   final Dio _dio;
 
   UserApiService(this._dio);
 
   // 🔍 VALIDATE LOGIN
-  Future<UserModel?> validateLogin(String firebaseUid) async {
+  Future<User?> validateLogin(String firebaseUid) async {
     final response = await _dio.post(
       '/api/user/validate-login',
-      data: {
-        'firebaseUid': firebaseUid,
-      },
+      data: {'firebaseUid': firebaseUid},
     );
 
     if (response.data['success'] == true) {
-      return UserModel.fromJson(response.data['user']);
+      return User.fromJson(response.data['user']);
     }
 
     return null;
   }
 
   // 🔄 SYNC USER
-  Future<UserModel> syncUser({
+  Future<User> syncUser({
     required String firebaseUid,
     required String email,
     required String name,
   }) async {
     final response = await _dio.post(
       '/api/user/sync',
-      data: {
-        'firebaseUid': firebaseUid,
-        'email': email,
-        'name': name,
-      },
+      data: {'firebaseUid': firebaseUid, 'email': email, 'name': name},
     );
 
-    return UserModel.fromJson(response.data);
+    return User.fromJson(response.data);
   }
 }
-import 'package:dio/dio.dart';
 
 class EventoApiService {
   final Dio _dio;
@@ -69,9 +64,7 @@ class EventoApiService {
   Future<List<EventoModel>> getUserEventos(String firebaseUid) async {
     final response = await _dio.post(
       '/api/eventos/user',
-      data: {
-        'firebaseUid': firebaseUid,
-      },
+      data: {'firebaseUid': firebaseUid},
     );
 
     if (response.data['success'] == true) {
@@ -88,10 +81,7 @@ class EventoApiService {
   }) async {
     final response = await _dio.post(
       '/api/eventos',
-      data: {
-        'firebaseUid': firebaseUid,
-        'eventoData': eventoData,
-      },
+      data: {'firebaseUid': firebaseUid, 'eventoData': eventoData},
     );
 
     if (response.data['success']) {
@@ -104,9 +94,7 @@ class EventoApiService {
   Future<void> deleteEvento(int id, String firebaseUid) async {
     final response = await _dio.delete(
       '/api/eventos/$id',
-      data: {
-        'firebaseUid': firebaseUid,
-      },
+      data: {'firebaseUid': firebaseUid},
     );
 
     if (!response.data['success']) {
@@ -121,10 +109,7 @@ class EventoApiService {
   }) async {
     final response = await _dio.put(
       '/api/eventos/$id',
-      data: {
-        'firebaseUid': firebaseUid,
-        'eventoData': eventoData,
-      },
+      data: {'firebaseUid': firebaseUid, 'eventoData': eventoData},
     );
 
     if (response.data['success']) {
@@ -134,8 +119,6 @@ class EventoApiService {
     throw Exception(response.data['message']);
   }
 }
-
-
 
 class PomodoroApiService {
   final Dio _dio;
@@ -157,9 +140,7 @@ class PomodoroApiService {
   Future<int> countTime(String firebaseUid) async {
     final response = await _dio.get(
       '/api/pomodoro/count-time',
-      queryParameters: {
-        'firebaseUid': firebaseUid,
-      },
+      queryParameters: {'firebaseUid': firebaseUid},
     );
 
     return response.data;
@@ -172,10 +153,7 @@ class PomodoroApiService {
   }) async {
     final response = await _dio.post(
       '/api/pomodoro',
-      data: {
-        'firebaseUid': firebaseUid,
-        'pomodoroData': pomodoroData,
-      },
+      data: {'firebaseUid': firebaseUid, 'pomodoroData': pomodoroData},
     );
 
     return PomodoroModel.fromJson(response.data);
