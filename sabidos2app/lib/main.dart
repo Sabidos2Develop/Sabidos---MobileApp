@@ -7,8 +7,7 @@ import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 import '../../data/datasources/auth_service.dart';
-import 'package:sabidos2app/presentation/pages/Flashcards_page.dart';
-
+import 'package:sabidos2app/presentation/pages/main_nav_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -38,7 +37,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         // useMaterial3: true
       ),
-      home: CheckAuth(),
+      home: MainNavigationPage(),
     );
   }
 }
