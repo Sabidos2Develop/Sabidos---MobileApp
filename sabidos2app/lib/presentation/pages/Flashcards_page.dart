@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-import 'package:sabidos2app/data/repositories/local_flashcards_repository.dart';
+import 'package:sabidos2app/data/repositories/api_flashcards_repository.dart';
 import 'package:sabidos2app/domain/models/flashcard_collection.dart';
 import 'package:sabidos2app/domain/models/flashcard_model.dart';
 import 'package:sabidos2app/presentation/dialogs/create_collection_dialog.dart';
@@ -17,7 +17,7 @@ class FlashcardsPage extends StatefulWidget {
 }
 
 class _FlashcardsPageState extends State<FlashcardsPage> {
-  final LocalFlashcardsRepository _repository = LocalFlashcardsRepository();
+  final ApiFlashcardsRepository _repository = ApiFlashcardsRepository();
 
   List<FlashcardCollection> _collections = [];
   bool _loading = true;
@@ -94,12 +94,12 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
       if (!mounted) return;
       _showSnack('Coleção criada com sucesso!');
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Erro ao criar coleção.';
+        _error = 'ERRO: $e';
       });
-    }
+      }
   }
 
   Future<void> _deleteCollection(String collectionId) async {
@@ -449,7 +449,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
 class _CollectionDetailsView extends StatefulWidget {
   final String collectionId;
-  final LocalFlashcardsRepository repository;
+  final ApiFlashcardsRepository repository;
 
   const _CollectionDetailsView({
     required this.collectionId,

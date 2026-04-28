@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/pages/login_page.dart';
-import 'package:sabidos2app/presentation/pages/teste.dart';
-
+import 'package:sabidos2app/presentation/pages/main_nav_page.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 
 class CheckAuth extends StatelessWidget {
@@ -19,7 +18,7 @@ class CheckAuth extends StatelessWidget {
         }
 
         if (auth.isAuthenticated) {
-          return const HomePage();
+          return const MainNavigationPage();
         } else {
           return const AuthPage();
         }
