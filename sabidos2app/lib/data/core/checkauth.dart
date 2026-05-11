@@ -11,7 +11,7 @@ class CheckAuth extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthController>(
       builder: (context, auth, _) {
-        if (auth.isLoading) {
+        if (!auth.initialized) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -19,9 +19,9 @@ class CheckAuth extends StatelessWidget {
 
         if (auth.isAuthenticated) {
           return const MainNavigationPage();
-        } else {
-          return const AuthPage();
         }
+
+        return const AuthPage();
       },
     );
   }

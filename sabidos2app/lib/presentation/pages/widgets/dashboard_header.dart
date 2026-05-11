@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sabidos2app/core/app_colors.dart';
+import 'package:sabidos2app/core/theme/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class DashboardHeader extends StatelessWidget {
@@ -18,16 +18,18 @@ class DashboardHeader extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: Theme.of(context).extension<AppColors>()!.card,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               "Opa $userName! Já checou suas notas hoje?\n"
               "Bons estudos, mantenha o foco.",
-              style: const TextStyle(color: AppColors.text),
+              style: TextStyle(
+                color: Theme.of(context).extension<AppColors>()!.primary,
+              ),
             ),
           ),
-        )
+        ),
       ],
     );
   }

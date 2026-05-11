@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/pages/widgets/inputDecoration.dart';
+import 'package:sabidos2app/presentation/pages/dashboard_page.dart';
+import 'package:sabidos2app/presentation/pages/teste.dart';
 import 'package:sabidos2app/presentation/pages/widgets/gradientBorderButton.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 

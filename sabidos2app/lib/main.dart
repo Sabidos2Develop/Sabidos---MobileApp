@@ -6,12 +6,19 @@ import 'package:sabidos2app/firebase_options.dart';
 import 'package:sabidos2app/data/datasources/resumo_service.dart';
 import 'package:sabidos2app/data/datasources/auth_service.dart';
 import 'package:sabidos2app/data/core/checkauth.dart';
+import 'package:sabidos2app/core/theme/theme_controller.dart';
+import 'package:sabidos2app/core/theme/app_theme.dart';
+import 'package:sabidos2app/core/theme/theme_storage.dart';
 import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
+import 'package:sabidos2app/presentation/pages/teste.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final themeController = ThemeController(ThemeStorage());
+
+  await themeController.loadTheme();
   runApp(
     MultiProvider(
       providers: [
@@ -19,6 +26,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => ResumoController(ResumoService()),
         ),
+        ChangeNotifierProvider(create: (_) => ThemeController(ThemeStorage())),
       ],
       child: const MyApp(),
     ),
@@ -33,10 +41,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sabidos²',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const CheckAuth(),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      // themeMode: controller.themeMode,
+      home: CheckAuth(),
     );
   }
 }

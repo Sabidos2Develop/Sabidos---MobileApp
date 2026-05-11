@@ -5,7 +5,7 @@ import '../../data/core/models/achievement.dart';
 import '../../data/core/models/user_stats.dart';
 import '../../data/core/models/achievement_catalog.dart';
 import '../pages/widgets/achievement_card.dart';
-import '../../core/app_colors.dart';
+import '../../core/theme/app_colors.dart';
 import '../controllers/authController.dart';
 
 class PerfilPage extends StatefulWidget {
@@ -108,7 +108,7 @@ class _PerfilPageState extends State<PerfilPage> {
     final displayRole = backendRole ?? "Membro";
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).extension<AppColors>()!.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -128,7 +128,7 @@ class _PerfilPageState extends State<PerfilPage> {
               padding: const EdgeInsets.all(1.2),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.card,
+                  color: Theme.of(context).extension<AppColors>()!.card,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Column(

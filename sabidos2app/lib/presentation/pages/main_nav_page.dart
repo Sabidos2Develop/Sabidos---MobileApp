@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sabidos2app/presentation/pages/teste.dart';
 
 import './widgets/b_navbar.dart';
 
@@ -22,9 +23,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     DashboardPage(),
     FlashcardsPage(),
     AgendaPage(),
-    PomodoroPage(),
+    ProgressoCircular(),
     ResumoPage(),
-    
+    HomePage(),
   ];
 
   void _onTabChange(int index) {
@@ -36,10 +37,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavbar(
         currentIndex: _currentIndex,
         onTap: _onTabChange,

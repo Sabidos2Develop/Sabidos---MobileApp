@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sabidos2app/core/app_colors.dart';
+import 'package:sabidos2app/core/theme/app_colors.dart';
 
 class StatCard extends StatelessWidget {
   final String label;
@@ -19,7 +19,7 @@ class StatCard extends StatelessWidget {
       width: 100,
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
-        color: AppColors.cardLight,
+        color: Theme.of(context).extension<AppColors>()!.cardLight,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -27,18 +27,27 @@ class StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: Theme.of(context).extension<AppColors>()!.primary,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border, width: 2),
+              border: Border.all(
+                color: Theme.of(context).extension<AppColors>()!.border,
+                width: 2,
+              ),
             ),
             child: Icon(icon, color: Colors.white),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).extension<AppColors>()!.text,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Text(
             value.toString(),
-            style: const TextStyle(
-              color: AppColors.text,
+            style: TextStyle(
+              color: Theme.of(context).extension<AppColors>()!.text,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),

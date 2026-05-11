@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sabidos2app/core/app_colors.dart';
+import 'package:sabidos2app/core/theme/app_colors.dart';
 
 class StudyTimeCard extends StatelessWidget {
   final int seconds;
@@ -18,7 +18,7 @@ class StudyTimeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.cardLight,
+        color: Theme.of(context).extension<AppColors>()!.cardLight,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -26,27 +26,30 @@ class StudyTimeCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: Theme.of(context).extension<AppColors>()!.primary,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border, width: 2),
+              border: Border.all(
+                color: Theme.of(context).extension<AppColors>()!.border,
+                width: 2,
+              ),
             ),
             child: const Icon(Icons.timer, color: Colors.white),
           ),
           const SizedBox(height: 12),
 
-          const Text(
+          Text(
             "Você estudou por:",
             style: TextStyle(
-              color: AppColors.text,
+              color: Theme.of(context).extension<AppColors>()!.text,
               fontWeight: FontWeight.bold,
             ),
           ),
 
           Text(
             formatTime(seconds),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 40,
-              color: AppColors.text,
+              color: Theme.of(context).extension<AppColors>()!.text,
               fontWeight: FontWeight.bold,
             ),
           ),
