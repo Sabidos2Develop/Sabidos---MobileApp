@@ -6,16 +6,20 @@ class AuthController extends ChangeNotifier {
   final AuthService _service;
 
   User? _user;
+
   bool _isLoading = false;
+  bool _initialized = false;
 
   AuthController(this._service) {
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _user = user;
+      _initialized = true;
       notifyListeners();
     });
   }
 
   bool get isLoading => _isLoading;
+  bool get initialized => _initialized;
   bool get isAuthenticated => _user != null;
   User? get user => _user;
 
@@ -25,8 +29,6 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _service.login(email, password);
-    } catch (e) {
-      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -55,8 +57,6 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _service.signInWithGoogle();
-    } catch (e) {
-      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

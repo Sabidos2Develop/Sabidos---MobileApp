@@ -11,7 +11,6 @@ import 'package:sabidos2app/core/theme/app_theme.dart';
 import 'package:sabidos2app/core/theme/theme_storage.dart';
 import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
-import 'package:sabidos2app/presentation/pages/pomodoro_page.dart';
 import 'package:sabidos2app/presentation/pages/teste.dart';
 
 void main() async {
@@ -45,7 +44,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       // themeMode: controller.themeMode,
-      home: HomePage(),
+      home: CheckAuth(),
     );
   }
 }
