@@ -4,36 +4,62 @@ import '../../data/datasources/points_service.dart';
 import '../../data/core/api_client.dart';
 import '../../core/theme/theme_controller.dart';
 import 'package:provider/provider.dart';
-// import '../../data/datasources/token_storage.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String resultText = "Nenhuma ação executada";
+  bool isLoading = false;
 
   Future<void> logout(BuildContext context) async {
     await AuthService().logout();
-    // await TokenStorage().clearToken();
   }
 
   Future<void> pontsFunc() async {
-    final service = PointsService(apiClient);
+    setState(() {
+      isLoading = true;
+      resultText = "Enviando requisição...";
+    });
 
-    final result = await service.earnPoints(
-      action: "FlashcardRespondido",
-      data: {"correct": true, "difficulty": "MEDIO"},
-    );
-    print("+${result.earnedPoints} pontos");
-    print("Total: ${result.totalPoints}");
+    try {
+      final service = PointsService(apiClient);
 
-    if (result.unlockedAchievements.isNotEmpty) {
-      for (var a in result.unlockedAchievements) {
-        print("Nova conquista: $a");
-      }
+      final result = await service.earnPoints(
+        action: "FlashcardRespondido",
+        data: {"correct": true, "difficulty": "MEDIO"},
+      );
+
+      setState(() {
+        resultText =
+            """
+✅ Pontos ganhos: ${result.earnedPoints}
+
+🏆 Total de pontos: ${result.totalPoints}
+
+🎯 Conquistas:
+${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.join("\n")}
+""";
+      });
+    } catch (e) {
+      setState(() {
+        resultText = "❌ Erro:\n$e";
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ThemeController>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home"),
@@ -50,19 +76,42 @@ class HomePage extends StatelessWidget {
           ),
           Switch(
             value: controller.themeMode == ThemeMode.dark,
-
             onChanged: (value) {
               controller.setTheme(value ? ThemeMode.dark : ThemeMode.light);
             },
           ),
         ],
       ),
-      body: Center(
-        child: Container(
-          child: IconButton(
-            onPressed: () => pontsFunc(),
-            icon: const Icon(Icons.access_alarm),
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            ElevatedButton.icon(
+              onPressed: isLoading ? null : pontsFunc,
+              icon: const Icon(Icons.stars),
+              label: const Text("Ganhar Pontos"),
+            ),
+
+            const SizedBox(height: 30),
+
+            if (isLoading) const CircularProgressIndicator(),
+
+            const SizedBox(height: 20),
+
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(resultText, style: const TextStyle(fontSize: 18)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
