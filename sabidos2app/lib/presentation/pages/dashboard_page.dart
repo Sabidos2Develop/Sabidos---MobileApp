@@ -33,6 +33,7 @@ class DashboardPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF2B2738), // fundo escuro do bloco
                   borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: const Color(0xFF423E51)),
                 ),
                 child: Column(
                   children: [

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../domain/models/flashcard_model.dart';
+import 'package:sabidos2app/domain/models/flashcard_model.dart';
 
 class CreateFlashcardDialog extends StatefulWidget {
   const CreateFlashcardDialog({super.key});
@@ -9,31 +9,23 @@ class CreateFlashcardDialog extends StatefulWidget {
 }
 
 class _CreateFlashcardDialogState extends State<CreateFlashcardDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _frontController;
-  late final TextEditingController _backController;
-  FlashcardDifficulty _difficulty = FlashcardDifficulty.facil;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _frontController = TextEditingController();
-    _backController = TextEditingController();
-  }
+  final _tituloController = TextEditingController();
+  final _frenteController = TextEditingController();
+  final _versoController = TextEditingController();
+  FlashcardDifficulty _dificuldade = FlashcardDifficulty.medio;
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _frontController.dispose();
-    _backController.dispose();
+    _tituloController.dispose();
+    _frenteController.dispose();
+    _versoController.dispose();
     super.dispose();
   }
 
   bool get _canSave =>
-      _titleController.text.trim().isNotEmpty &&
-      _frontController.text.trim().isNotEmpty &&
-      _backController.text.trim().isNotEmpty;
+      _tituloController.text.trim().isNotEmpty &&
+      _frenteController.text.trim().isNotEmpty &&
+      _versoController.text.trim().isNotEmpty;
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
@@ -70,125 +62,133 @@ class _CreateFlashcardDialogState extends State<CreateFlashcardDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF292535),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Novo Flashcard',
-                  style: TextStyle(
-                    color: Color(0xFFFBCB4E),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Novo Flashcard',
+              style: TextStyle(
+                color: Color(0xFFFBCB4E),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 18),
-              Align(alignment: Alignment.centerLeft, child: _label('Título *')),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _titleController,
-                onChanged: (_) => setState(() {}),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Align(alignment: Alignment.centerLeft, child: _label('Título do card *')),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _tituloController,
+            onChanged: (_) => setState(() {}),
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Ex: Pergunta Rápida'),
+          ),
+          const SizedBox(height: 18),
+          Align(alignment: Alignment.centerLeft, child: _label('Frente (Pergunta) *')),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _frenteController,
+            onChanged: (_) => setState(() {}),
+            maxLines: 2,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('O que aparecerá primeiro?'),
+          ),
+          const SizedBox(height: 18),
+          Align(alignment: Alignment.centerLeft, child: _label('Verso (Resposta) *')),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _versoController,
+            onChanged: (_) => setState(() {}),
+            maxLines: 2,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('A resposta correta'),
+          ),
+          const SizedBox(height: 18),
+          Align(alignment: Alignment.centerLeft, child: _label('Dificuldade')),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<FlashcardDifficulty>(
+                value: _dificuldade,
+                dropdownColor: const Color(0xFF292535),
+                isExpanded: true,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Ex: Mitocôndria'),
-              ),
-              const SizedBox(height: 12),
-              Align(alignment: Alignment.centerLeft, child: _label('Frente *')),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _frontController,
-                onChanged: (_) => setState(() {}),
-                maxLines: 4,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Pergunta ou conceito...'),
-              ),
-              const SizedBox(height: 12),
-              Align(alignment: Alignment.centerLeft, child: _label('Verso *')),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _backController,
-                onChanged: (_) => setState(() {}),
-                maxLines: 4,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Resposta correta...'),
-              ),
-              const SizedBox(height: 12),
-              Align(alignment: Alignment.centerLeft, child: _label('Dificuldade')),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: FlashcardDifficulty.values.map((difficulty) {
-                  final selected = _difficulty == difficulty;
-                  return ChoiceChip(
-                    label: Text(difficulty.label),
-                    selected: selected,
-                    onSelected: (_) {
-                      setState(() {
-                        _difficulty = difficulty;
-                      });
-                    },
-                    selectedColor: const Color(0xFFFBCB4E),
-                    backgroundColor: const Color(0xFF1A1A2E),
-                    labelStyle: TextStyle(
-                      color: selected ? const Color(0xFF292535) : Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    side: BorderSide(
-                      color: selected ? const Color(0xFFFBCB4E) : Colors.white24,
-                    ),
+                items: FlashcardDifficulty.values.map((d) {
+                  return DropdownMenuItem(
+                    value: d,
+                    child: Text(d.label),
                   );
                 }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _dificuldade = val);
+                },
               ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancelar'),
-                    ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.grey),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _canSave
-                          ? () {
-                              Navigator.of(context).pop(
-                                FlashcardFormData(
-                                  titulo: _titleController.text.trim(),
-                                  frente: _frontController.text.trim(),
-                                  verso: _backController.text.trim(),
-                                  dificuldade: _difficulty,
-                                ),
-                              );
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBCB4E),
-                        foregroundColor: const Color(0xFF292535),
-                        disabledBackgroundColor: Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Salvar'),
-                    ),
+                  child: const Text('Cancelar'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _canSave
+                      ? () {
+                          Navigator.of(context).pop(FlashcardFormData(
+                            titulo: _tituloController.text.trim(),
+                            frente: _frenteController.text.trim(),
+                            verso: _versoController.text.trim(),
+                            dificuldade: _dificuldade,
+                          ));
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBCB4E),
+                    foregroundColor: const Color(0xFF292535),
+                    disabledBackgroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                ],
+                  child: const Text('Salvar'),
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

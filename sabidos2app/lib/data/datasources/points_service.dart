@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import '../../domain/models/EarnResponse.dart';
-import '../../domain/models/UserProgress.dart';
+import 'package:sabidos2app/domain/models/earn_response.dart';
+import 'package:sabidos2app/domain/models/user_progress.dart';
 
 class PointsService {
   final Dio _dio;

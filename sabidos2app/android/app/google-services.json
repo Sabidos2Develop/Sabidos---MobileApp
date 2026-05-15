@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "772561215621-0qqo9es4kfanko2nn5kuti0qpui0f56q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.sabidos2app",
+            "certificate_hash": "1e2c6daae4533399196ed14ab5e2ffd57168e061"
+          }
+        },
+        {
           "client_id": "772561215621-rnus2n1r7f72pm0043lo5h54qvoncjfd.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "772561215621-rnus2n1r7f72pm0043lo5h54qvoncjfd.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "772561215621-jmm8g000i81a15lu3c9or4icvkcgg4mo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sabidos2app"
+              }
             }
           ]
         }
