@@ -1,13 +1,19 @@
 class UserProgress {
-  final int points;
-  final List<String> achievements;
+  // final List<String> achievements;
+  final int totalPoints;
+  // final List<String> unlockedAchievements;
 
-  UserProgress({required this.points, required this.achievements});
+  UserProgress({
+    // required this.achievements,
+    required this.totalPoints,
+    // required this.unlockedAchievements,
+  });
 
   factory UserProgress.fromJson(Map<String, dynamic> json) {
     return UserProgress(
-      points: json["points"],
-      achievements: List<String>.from(json["achievements"] ?? []),
+      totalPoints: json["totalPoints"],
+
+      // achievements: List<String>.from(json["achievements"] ?? []),
     );
   }
 }
