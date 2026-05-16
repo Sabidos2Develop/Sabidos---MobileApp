@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
+import '../core/api_client.dart';
 import '../../domain/models/EarnResponse.dart';
 import '../../domain/models/UserProgress.dart';
 
 class PointsService {
   final Dio _dio;
 
-  PointsService(this._dio);
+  PointsService({Dio? dio}) : _dio = dio ?? apiClient;
 
   Future<EarnResponse> earnPoints({
     required String action,
@@ -20,9 +21,9 @@ class PointsService {
   }
 
   Future<UserProgress> getMyProgress() async {
-    final response = await _dio.get("/points/me");
+    final result = await _dio.get("/points/me");
 
-    return UserProgress.fromJson(response.data);
+    return UserProgress.fromJson(result.data);
   }
 }
 

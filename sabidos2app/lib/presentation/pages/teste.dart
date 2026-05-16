@@ -4,6 +4,7 @@ import '../../data/datasources/points_service.dart';
 import '../../data/core/api_client.dart';
 import '../../core/theme/theme_controller.dart';
 import 'package:provider/provider.dart';
+// import '../../data/core/api_client.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,11 +28,11 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final service = PointsService(apiClient);
+      final service = PointsService();
 
       final result = await service.earnPoints(
         action: "FlashcardRespondido",
-        data: {"correct": true, "difficulty": "MEDIO"},
+        data: {"correct": false, "difficulty": "MEDIO"},
       );
 
       setState(() {
@@ -55,6 +56,41 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
       });
     }
   }
+  //   Future<void> pontsFunc() async {
+  //     setState(() {
+  //       isLoading = true;
+  //       resultText = "Enviando requisição...";
+  //     });
+
+  //     try {
+  //       final service = PointsService();
+
+  //       final result = await service.earnPoints(
+  //         action: "FlashcardRespondido",
+  //         data: {"correct": true, "difficulty": "MEDIO"},
+  //       );
+
+  //       setState(() {
+  //         resultText =
+  //             """
+  // ✅ Pontos ganhos: ${result.earnedPoints}
+
+  // 🏆 Total de pontos: ${result.totalPoints}
+
+  // 🎯 Conquistas:
+  // ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.join("\n")}
+  // """;
+  //       });
+  //     } catch (e) {
+  //       setState(() {
+  //         resultText = "❌ Erro:\n$e";
+  //       });
+  //     } finally {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //     }
+  //   }
 
   @override
   Widget build(BuildContext context) {
