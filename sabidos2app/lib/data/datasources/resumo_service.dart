@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/resumo.dart';
+import 'points_service.dart';
 
 class ResumoService {
   final _db = FirebaseFirestore.instance;
@@ -18,6 +19,9 @@ class ResumoService {
 
   Future<void> addResumo(Resumo resumo) async {
     await _db.collection("resumos").add(resumo.toMap());
+    final service = PointsService();
+
+    final result = await service.earnPoints(action: "ResumoCriado", data: {});
   }
 
   Future<void> deleteResumo(String id) async {

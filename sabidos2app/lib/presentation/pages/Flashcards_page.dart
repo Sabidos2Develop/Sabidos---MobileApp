@@ -8,6 +8,7 @@ import 'package:sabidos2app/presentation/dialogs/create_collection_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/create_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/edit_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/start_game_dialog.dart';
+import '../../data/datasources/points_service.dart';
 
 class FlashcardsPage extends StatefulWidget {
   const FlashcardsPage({super.key});
@@ -99,7 +100,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       setState(() {
         _error = 'ERRO: $e';
       });
-      }
+    }
   }
 
   Future<void> _deleteCollection(String collectionId) async {
@@ -1225,6 +1226,28 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
     final percent = maxScore == 0
         ? 0
         : ((_totalScore / maxScore) * 100).round();
+
+    try {
+      final service = PointsService();
+
+      final result = await service.earnPoints(
+        action: "FlashcardRespondido",
+        data: {"score": _totalScore},
+      );
+
+      print("""
+✅ Pontos ganhos: ${result.earnedPoints}
+
+🏆 Total de pontos: ${result.totalPoints}
+
+🎯 Conquistas:
+${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.join("\n")}
+""");
+    } catch (e) {
+      setState(() {
+        print("❌ Erro:\n$e");
+      });
+    }
 
     String medal;
     String message;
