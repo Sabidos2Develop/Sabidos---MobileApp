@@ -1,5 +1,5 @@
-import '../../domain/models/flashcard_collection.dart';
-import '../../domain/models/flashcard_model.dart';
+import 'package:sabidos2app/domain/models/flashcard_collection.dart';
+import 'package:sabidos2app/domain/models/flashcard_model.dart';
 
 class LocalFlashcardsRepository {
   final List<FlashcardCollection> _collections = [];

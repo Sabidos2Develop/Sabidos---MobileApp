@@ -1,49 +1,64 @@
-import '../../domain/models/flashcard_collection.dart';
-import '../../domain/models/flashcard_model.dart';
-import '../core/api_client.dart';
+import 'package:sabidos2app/domain/models/flashcard_collection.dart';
+import 'package:sabidos2app/domain/models/flashcard_model.dart';
+import 'package:sabidos2app/data/core/api_client.dart';
 
 class ApiFlashcardsRepository {
+  FlashcardModel _mapCard(dynamic c) {
+    return FlashcardModel(
+      id: c['id'],
+      titulo: c['front'].toString().split('\n').first,
+      frente: c['front'],
+      verso: c['back'],
+      data: c['createdAt'],
+      createdAt: DateTime.parse(c['createdAt']),
+      dificuldade: FlashcardDifficulty.medio,
+    );
+  }
+
   Future<List<FlashcardCollection>> getCollections() async {
     try {
       final response = await apiClient.get('/FlashcardCollection');
       final data = response.data as List;
       
       List<FlashcardCollection> colecoes = [];
-      
       for (var item in data) {
-        final flashcardsResponse = await apiClient.get('/Flashcard/collection/${item['id']}');
-        final flashcardsData = flashcardsResponse.data as List;
-        
-        List<FlashcardModel> cartas = flashcardsData.map((c) => FlashcardModel(
-          id: c['id'],
-          titulo: c['front'].toString().split('\n').first,
-          frente: c['front'],
-          verso: c['back'],
-          data: c['createdAt'],
-          createdAt: DateTime.parse(c['createdAt']),
-          dificuldade: FlashcardDifficulty.medio,
-        )).toList();
-        
         colecoes.add(FlashcardCollection(
           id: item['id'],
           titulo: item['name'],
-          descricao: item['color'],
+          descricao: item['color'] ?? '',
           criadoEm: DateTime.parse(item['createdAt']),
-          flashcards: cartas,
+          flashcards: [], // Não carrega os cards aqui para ser rápido
         ));
       }
-      
       return colecoes;
     } catch (e) {
-      print('Erro: $e'); return [];
+      print('Erro getCollections: $e'); return [];
     }
   }
 
   Future<FlashcardCollection?> getCollectionById(String id) async {
-    final colecoes = await getCollections();
     try {
-      return colecoes.firstWhere((c) => c.id == id);
-    } catch (e) { print('ERRO FATAL API GET: $e'); return null; }
+      // 1. Pega os dados da coleção
+      final collRes = await apiClient.get('/FlashcardCollection/$id');
+      final item = collRes.data;
+
+      // 2. Pega os cards dessa coleção especificamente
+      final cardsRes = await apiClient.get('/Flashcard/collection/$id');
+      final cardsData = cardsRes.data as List;
+      
+      List<FlashcardModel> cartas = cardsData.map((c) => _mapCard(c)).toList();
+      
+      return FlashcardCollection(
+        id: item['id'],
+        titulo: item['name'],
+        descricao: item['color'] ?? '',
+        criadoEm: DateTime.parse(item['createdAt']),
+        flashcards: cartas,
+      );
+    } catch (e) { 
+      print('ERRO getCollectionById: $e'); 
+      return null; 
+    }
   }
 
   Future<void> addCollection(FlashcardCollection collection) async {

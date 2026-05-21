@@ -41,6 +41,7 @@ class DashboardPage extends StatelessWidget {
                   color: colors.card,
 
                   borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: const Color(0xFF423E51)),
                 ),
 
                 child: Column(

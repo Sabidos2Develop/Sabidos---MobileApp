@@ -1,134 +1,128 @@
 import 'package:flutter/material.dart';
 
-class StartGameConfig {
-  final int quantidade;
-
-  StartGameConfig({
-    required this.quantidade,
-  });
-}
-
 class StartGameDialog extends StatefulWidget {
   final int maxCards;
 
-  const StartGameDialog({
-    super.key,
-    required this.maxCards,
-  });
+  const StartGameDialog({super.key, required this.maxCards});
 
   @override
   State<StartGameDialog> createState() => _StartGameDialogState();
 }
 
 class _StartGameDialogState extends State<StartGameDialog> {
-  late int _selectedAmount;
+  late int _quantidade;
 
   @override
   void initState() {
     super.initState();
-    _selectedAmount = widget.maxCards;
+    _quantidade = widget.maxCards > 10 ? 10 : widget.maxCards;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF292535),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Configurar partida',
-                style: TextStyle(
-                  color: Color(0xFFFBCB4E),
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 14),
-            const Text(
-              'Escolha quantos cards deseja jogar nesta rodada.',
+          ),
+          const SizedBox(height: 24),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Configurar Partida',
               style: TextStyle(
-                color: Colors.white60,
-                fontSize: 13,
-                height: 1.5,
+                color: Color(0xFFFBCB4E),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 18),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$_selectedAmount card(s)',
-                    style: const TextStyle(
-                      color: Color(0xFFFBCB4E),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Slider(
-                    value: _selectedAmount.toDouble(),
-                    min: 1,
-                    max: widget.maxCards.toDouble(),
-                    divisions: widget.maxCards == 1 ? 1 : widget.maxCards - 1,
-                    activeColor: const Color(0xFFFBCB4E),
-                    inactiveColor: Colors.white24,
-                    label: '$_selectedAmount',
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedAmount = value.round();
-                      });
-                    },
-                  ),
-                ],
-              ),
+          ),
+          const SizedBox(height: 18),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Quantos cards você quer revisar?',
+              style: TextStyle(color: Colors.white70, fontSize: 15),
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.grey),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cancelar'),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: _quantidade > 1 ? () => setState(() => _quantidade--) : null,
+                icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFFBCB4E)),
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF423E51)),
+                ),
+                child: Text(
+                  '$_quantidade',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(
-                        StartGameConfig(quantidade: _selectedAmount),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFBCB4E),
-                      foregroundColor: const Color(0xFF292535),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Jogar'),
+              ),
+              IconButton(
+                onPressed: _quantidade < widget.maxCards
+                    ? () => setState(() => _quantidade++)
+                    : null,
+                icon: const Icon(Icons.add_circle_outline, color: Color(0xFFFBCB4E)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.grey),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
+                  child: const Text('Cancelar'),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(StartGameConfig(quantidade: _quantidade));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBCB4E),
+                    foregroundColor: const Color(0xFF292535),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Jogar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
+
+class StartGameConfig {
+  final int quantidade;
+  StartGameConfig({required this.quantidade});
 }

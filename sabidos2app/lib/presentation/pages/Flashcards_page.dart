@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-
 import 'package:sabidos2app/data/repositories/api_flashcards_repository.dart';
 import 'package:sabidos2app/domain/models/flashcard_collection.dart';
 import 'package:sabidos2app/domain/models/flashcard_model.dart';
@@ -8,7 +7,7 @@ import 'package:sabidos2app/presentation/dialogs/create_collection_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/create_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/edit_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/start_game_dialog.dart';
-import '../../data/datasources/points_service.dart';
+import 'package:sabidos2app/data/datasources/points_service.dart';
 
 class FlashcardsPage extends StatefulWidget {
   const FlashcardsPage({super.key});
@@ -72,10 +71,22 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     return '$d/$m';
   }
 
-  Future<void> _openCreateCollectionDialog() async {
-    final result = await showDialog<CollectionFormData>(
+  Future<T?> _showSheet<T>(Widget child) {
+    return showModalBottomSheet<T>(
       context: context,
-      builder: (_) => const CreateCollectionDialog(),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF292535),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFF423E51)),
+      ),
+      builder: (context) => child,
+    );
+  }
+
+  Future<void> _openCreateCollectionDialog() async {
+    final result = await _showSheet<CollectionFormData>(
+      const CreateCollectionDialog(),
     );
 
     if (result == null) return;
@@ -104,35 +115,62 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
   }
 
   Future<void> _deleteCollection(String collectionId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF292535),
-        title: const Text(
-          'Excluir coleção',
-          style: TextStyle(color: Color(0xFFFBCB4E)),
-        ),
-        content: const Text(
-          'Tem certeza que deseja excluir esta coleção e todos os cards dela?',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white70),
+    final confirm = await _showSheet<bool>(
+      Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
+            const SizedBox(height: 24),
+            const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 50),
+            const SizedBox(height: 16),
+            const Text(
+              'Excluir coleção?',
+              style: TextStyle(color: Color(0xFFFBCB4E), fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            child: const Text('Excluir'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            const Text(
+              'Isso removerá permanentemente a coleção e todos os seus cards.',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: const BorderSide(color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Excluir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 
@@ -143,29 +181,40 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     _showSnack('Coleção excluída.');
   }
 
-  Future<void> _openCollectionDetails(FlashcardCollection collection) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _CollectionDetailsView(
-          collectionId: collection.id,
-          repository: _repository,
-        ),
-      ),
-    );
+  bool _isNavigating = false;
 
-    await _loadCollections();
+  Future<void> _openCollectionDetails(FlashcardCollection collection) async {
+    if (_isNavigating) return;
+    _isNavigating = true;
+
+    try {
+      final bool? changed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => _CollectionDetailsView(
+            collectionId: collection.id,
+            repository: _repository,
+          ),
+        ),
+      );
+
+      if (changed == true && mounted) {
+        _loadCollections();
+      }
+    } catch (_) {
+      // Erro silencioso na navegao
+    } finally {
+      _isNavigating = false;
+    }
   }
 
   Future<void> _playCollection(FlashcardCollection collection) async {
-    if (collection.flashcards.isEmpty) {
+    if (collection.flashcards == null || collection.flashcards.isEmpty) {
       _showSnack('Essa coleção ainda não tem flashcards.');
       return;
     }
 
-    final config = await showDialog<StartGameConfig>(
-      context: context,
-      builder: (_) => StartGameDialog(maxCards: collection.flashcards.length),
+    final config = await _showSheet<StartGameConfig>(
+      StartGameDialog(maxCards: collection.flashcards.length),
     );
 
     if (config == null) return;
@@ -181,7 +230,9 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       ),
     );
 
-    await _loadCollections();
+    if (mounted) {
+      await _loadCollections();
+    }
   }
 
   @override
@@ -200,15 +251,10 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreateCollectionDialog,
+      floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFFBCB4E),
-        foregroundColor: const Color(0xFF292535),
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'Coleção',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        onPressed: () => _openCreateCollectionDialog(),
+        child: const Icon(Icons.add, color: Color(0xFF171621)),
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -234,6 +280,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF423E51)),
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -272,6 +319,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF423E51)),
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -345,74 +393,86 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
               itemBuilder: (_, index) {
                 final collection = _collections[index];
 
-                return InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => _openCollectionDetails(collection),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A2E),
-                      borderRadius: BorderRadius.circular(18),
-                      border: const Border(
-                        left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.style_rounded,
-                              color: Color(0xFFFBCB4E),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                collection.titulo,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFFBCB4E),
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A2E),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF423E51)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ÁREA DE CLIQUE: Apenas o conteúdo
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          debugPrint('--- CLIQUE DETECTADO NO CORPO: ${collection.titulo} ---');
+                          _openCollectionDetails(collection);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.style_rounded,
+                                    color: Color(0xFFFBCB4E),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      collection.titulo,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFFFBCB4E),
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white10,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _formatShortDate(collection.criadoEm),
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (collection.descricao.trim().isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  collection.descricao,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                    height: 1.45,
+                                  ),
                                 ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _formatShortDate(collection.criadoEm),
-                                style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (collection.descricao.trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            collection.descricao,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              height: 1.45,
-                            ),
+                              ],
+                            ],
                           ),
-                        ],
-                        const SizedBox(height: 12),
-                        Wrap(
+                        ),
+                      ),
+                      // ÁREA DOS BOTÕES: Fora do GestureDetector principal
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
@@ -420,24 +480,33 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                               icon: Icons.layers,
                               label: '${collection.flashcards.length} cards',
                               color: Colors.lightBlueAccent,
-                              onTap: () => _openCollectionDetails(collection),
+                              onTap: () {
+                                debugPrint('--- CLIQUE INFO CARDS ---');
+                                _openCollectionDetails(collection);
+                              },
                             ),
                             _ActionChip(
                               icon: Icons.play_arrow_rounded,
                               label: 'Jogar',
                               color: const Color(0xFF6BE38A),
-                              onTap: () => _playCollection(collection),
+                              onTap: () {
+                                debugPrint('--- CLIQUE JOGAR ---');
+                                _playCollection(collection);
+                              },
                             ),
                             _ActionChip(
                               icon: Icons.delete,
                               label: 'Excluir',
                               color: Colors.redAccent,
-                              onTap: () => _deleteCollection(collection.id),
+                              onTap: () {
+                                debugPrint('--- CLIQUE EXCLUIR ---');
+                                _deleteCollection(collection.id);
+                              },
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -517,10 +586,22 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
     return '$d/$m';
   }
 
-  Future<void> _openCreateCardDialog() async {
-    final result = await showDialog<FlashcardFormData>(
+  Future<T?> _showSheet<T>(Widget child) {
+    return showModalBottomSheet<T>(
       context: context,
-      builder: (_) => const CreateFlashcardDialog(),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF292535),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFF423E51)),
+      ),
+      builder: (context) => child,
+    );
+  }
+
+  Future<void> _openCreateCardDialog() async {
+    final result = await _showSheet<FlashcardFormData>(
+      const CreateFlashcardDialog(),
     );
 
     if (result == null) return;
@@ -540,14 +621,15 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
       ),
     );
 
+    if (!mounted) return;
     await _loadCollection();
+    if (!mounted) return;
     _showSnack('Flashcard criado com sucesso!');
   }
 
   Future<void> _editCard(FlashcardModel card) async {
-    final result = await showDialog<FlashcardFormData>(
-      context: context,
-      builder: (_) => EditFlashcardDialog(card: card),
+    final result = await _showSheet<FlashcardFormData>(
+      EditFlashcardDialog(card: card),
     );
 
     if (result == null) return;
@@ -565,40 +647,69 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
       ),
     );
 
+    if (!mounted) return;
     await _loadCollection();
+    if (!mounted) return;
     _showSnack('Flashcard atualizado!');
   }
 
   Future<void> _deleteCard(String cardId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF292535),
-        title: const Text(
-          'Excluir flashcard',
-          style: TextStyle(color: Color(0xFFFBCB4E)),
-        ),
-        content: const Text(
-          'Deseja realmente excluir este flashcard?',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white70),
+    final confirm = await _showSheet<bool>(
+      Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
+            const SizedBox(height: 24),
+            const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 50),
+            const SizedBox(height: 16),
+            const Text(
+              'Excluir card?',
+              style: TextStyle(color: Color(0xFFFBCB4E), fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            child: const Text('Excluir'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            const Text(
+              'Deseja realmente remover este flashcard?',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: const BorderSide(color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Não'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Sim, Excluir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 
@@ -608,19 +719,20 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
       widget.collectionId,
       cardId,
     );
+    if (!mounted) return;
     await _loadCollection();
+    if (!mounted) return;
     _showSnack('Flashcard excluído.');
   }
 
   Future<void> _startGame(FlashcardCollection collection) async {
-    if (collection.flashcards.isEmpty) {
+    if (collection.flashcards == null || collection.flashcards.isEmpty) {
       _showSnack('Adicione ao menos 1 card para jogar.');
       return;
     }
 
-    final config = await showDialog<StartGameConfig>(
-      context: context,
-      builder: (_) => StartGameDialog(maxCards: collection.flashcards.length),
+    final config = await _showSheet<StartGameConfig>(
+      StartGameDialog(maxCards: collection.flashcards.length),
     );
 
     if (config == null) return;
@@ -646,6 +758,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
       backgroundColor: const Color(0xFF292535),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFF423E51)),
       ),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
@@ -779,6 +892,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
           decoration: BoxDecoration(
             color: const Color(0xFF1A1A2E),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF423E51)),
           ),
           child: Text(
             content,
@@ -797,6 +911,45 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
   Widget build(BuildContext context) {
     final collection = _collection;
 
+    if (_loading && collection == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF171621),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFBCB4E)),
+        ),
+      );
+    }
+
+    if (collection == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF171621),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF171621),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFFFBCB4E),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text(
+            'Erro',
+            style: TextStyle(
+              color: Color(0xFFFBCB4E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: Text(
+            'Erro ao carregar coleção',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF171621),
       appBar: AppBar(
@@ -810,7 +963,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          collection?.titulo ?? 'Coleção',
+          collection.titulo,
           style: const TextStyle(
             color: Color(0xFFFBCB4E),
             fontWeight: FontWeight.bold,
@@ -835,56 +988,57 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
             children: [
-              if (collection != null)
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF292535),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SectionHeader(title: 'Detalhes da Coleção'),
-                      const SizedBox(height: 12),
-                      if (collection.descricao.trim().isNotEmpty)
-                        Text(
-                          collection.descricao,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            height: 1.45,
-                          ),
-                        ),
-                      if (collection.descricao.trim().isNotEmpty)
-                        const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _ActionChip(
-                            icon: Icons.layers,
-                            label: '${collection.flashcards.length} cards',
-                            color: Colors.lightBlueAccent,
-                            onTap: () {},
-                          ),
-                          _ActionChip(
-                            icon: Icons.play_arrow_rounded,
-                            label: 'Jogar',
-                            color: const Color(0xFF6BE38A),
-                            onTap: () => _startGame(collection),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF292535),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFF423E51)),
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionHeader(title: 'Detalhes da Coleção'),
+                    const SizedBox(height: 12),
+                    if (collection.descricao.trim().isNotEmpty)
+                      Text(
+                        collection.descricao,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.45,
+                        ),
+                      ),
+                    if (collection.descricao.trim().isNotEmpty)
+                      const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _ActionChip(
+                          icon: Icons.layers,
+                          label: '${collection.flashcards.length} cards',
+                          color: Colors.lightBlueAccent,
+                          onTap: () {},
+                        ),
+                        _ActionChip(
+                          icon: Icons.play_arrow_rounded,
+                          label: 'Jogar',
+                          color: const Color(0xFF6BE38A),
+                          onTap: () => _startGame(collection),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: const Color(0xFF292535),
                   borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFF423E51)),
                 ),
                 child: Column(
                   children: [
@@ -893,14 +1047,13 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                         const Expanded(
                           child: _SectionHeader(title: 'Flashcards da Coleção'),
                         ),
-                        if (collection != null)
-                          Text(
-                            '${collection.flashcards.length} card(s)',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                            ),
+                        Text(
+                          '${collection.flashcards.length} card(s)',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
                           ),
+                        ),
                       ],
                     ),
                     if (_error.isNotEmpty) ...[
@@ -920,17 +1073,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                       ),
                     ],
                     const SizedBox(height: 14),
-                    if (_loading)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFFBCB4E),
-                          ),
-                        ),
-                      )
-                    else if (collection == null ||
-                        collection.flashcards.isEmpty)
+                    if (collection.flashcards.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 28),
                         child: Column(
@@ -977,12 +1120,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                                     ? const Color(0xFF2A2438)
                                     : const Color(0xFF1A1A2E),
                                 borderRadius: BorderRadius.circular(18),
-                                border: const Border(
-                                  left: BorderSide(
-                                    color: Color(0xFFFBCB4E),
-                                    width: 4,
-                                  ),
-                                ),
+                                border: Border.all(color: const Color(0xFF423E51)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1140,10 +1278,23 @@ class _FlashcardGameViewState extends State<_FlashcardGameView> {
   @override
   void initState() {
     super.initState();
-    final shuffled = List<FlashcardModel>.from(widget.collection.flashcards);
-    shuffled.shuffle(Random());
 
-    _cards = shuffled.take(widget.quantidadeDeCards).toList();
+    if (widget.collection.flashcards == null ||
+        widget.collection.flashcards.isEmpty) {
+      _cards = [];
+      return;
+    }
+
+    try {
+      final shuffled = List<FlashcardModel>.from(
+        widget.collection.flashcards ?? [],
+      );
+      shuffled.shuffle(Random());
+      _cards = shuffled.take(widget.quantidadeDeCards).toList();
+    } catch (e) {
+      print('Erro ao inicializar jogo: $e');
+      _cards = [];
+    }
   }
 
   @override
@@ -1263,92 +1414,101 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
       message = 'Você já começou. Agora é revisar e tentar novamente.';
     }
 
-    final shouldLeave = await showDialog<bool>(
+    final shouldLeave = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: const Color(0xFF292535),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(medal, style: const TextStyle(fontSize: 52)),
-              const SizedBox(height: 12),
-              const Text(
-                'Resultado Final',
-                style: TextStyle(
-                  color: Color(0xFFFBCB4E),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF292535),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFF423E51)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(height: 12),
-              Text(
-                widget.collection.titulo,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+            const SizedBox(height: 24),
+            Text(medal, style: const TextStyle(fontSize: 52)),
+            const SizedBox(height: 12),
+            const Text(
+              'Resultado Final',
+              style: TextStyle(
+                color: Color(0xFFFBCB4E),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 18),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
-                  borderRadius: BorderRadius.circular(16),
-                  border: const Border(
-                    left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '$_totalScore pontos',
-                      style: const TextStyle(
-                        color: Color(0xFFFBCB4E),
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.collection.titulo,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A2E),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF423E51)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '$_totalScore pontos',
+                    style: const TextStyle(
+                      color: Color(0xFFFBCB4E),
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$percent% de aproveitamento',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$percent% de aproveitamento',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        height: 1.45,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 13,
+                      height: 1.45,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(sheetContext).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFBCB4E),
+                  foregroundColor: const Color(0xFF292535),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: const Text(
+                  'Voltar às coleções',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFBCB4E),
-                    foregroundColor: const Color(0xFF292535),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                  child: const Text(
-                    'Voltar às coleções',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1360,6 +1520,39 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
 
   @override
   Widget build(BuildContext context) {
+    if (_cards.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF171621),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF171621),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFFFBCB4E),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            'Jogar • ${widget.collection.titulo}',
+            style: const TextStyle(
+              color: Color(0xFFFBCB4E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: const SafeArea(
+          child: Center(
+            child: Text(
+              'Nenhum flashcard disponível para jogar',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final progress = (_currentIndex + 1) / _cards.length;
 
     return Scaffold(
@@ -1391,6 +1584,7 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
               decoration: BoxDecoration(
                 color: const Color(0xFF292535),
                 borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFF423E51)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1439,6 +1633,7 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
               decoration: BoxDecoration(
                 color: const Color(0xFF292535),
                 borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFF423E51)),
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black26,
@@ -1458,9 +1653,7 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1A2E),
                       borderRadius: BorderRadius.circular(16),
-                      border: const Border(
-                        left: BorderSide(color: Color(0xFFFBCB4E), width: 4),
-                      ),
+                      border: Border.all(color: const Color(0xFF423E51)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../data/core/models/achievement.dart';
-import '../../data/core/models/user_stats.dart';
-import '../../data/core/models/achievement_catalog.dart';
-import '../pages/widgets/achievement_card.dart';
-import '../../core/theme/app_colors.dart';
-import '../controllers/authController.dart';
+import 'package:sabidos2app/data/core/models/achievement.dart';
+import 'package:sabidos2app/data/core/models/user_stats.dart';
+import 'package:sabidos2app/data/core/models/achievement_catalog.dart';
+import 'package:sabidos2app/presentation/pages/widgets/achievement_card.dart';
+import 'package:sabidos2app/core/theme/app_colors.dart';
+import 'package:sabidos2app/presentation/controllers/authController.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});

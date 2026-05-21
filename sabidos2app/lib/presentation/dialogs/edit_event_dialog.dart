@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:sabidos2app/domain/models/flashcard_collection.dart';
+import '../../domain/models/agenda_event_model.dart';
 
-class CreateCollectionDialog extends StatefulWidget {
-  const CreateCollectionDialog({super.key});
+class EditEventDialog extends StatefulWidget {
+  final AgendaEventModel event;
+
+  const EditEventDialog({
+    super.key,
+    required this.event,
+  });
 
   @override
-  State<CreateCollectionDialog> createState() => _CreateCollectionDialogState();
+  State<EditEventDialog> createState() => _EditEventDialogState();
 }
 
-class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
-  final _tituloController = TextEditingController();
-  final _descricaoController = TextEditingController();
+class _EditEventDialogState extends State<EditEventDialog> {
+  late final TextEditingController _titleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.event.title);
+  }
 
   @override
   void dispose() {
-    _tituloController.dispose();
-    _descricaoController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
-  bool get _canCreate => _tituloController.text.trim().isNotEmpty;
+  bool get _canSave => _titleController.text.trim().isNotEmpty;
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
@@ -79,7 +88,7 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Nova Coleção',
+              'Editar Compromisso',
               style: TextStyle(
                 color: Color(0xFFFBCB4E),
                 fontSize: 22,
@@ -88,22 +97,14 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
             ),
           ),
           const SizedBox(height: 18),
-          Align(alignment: Alignment.centerLeft, child: _label('Título da coleção *')),
+          Align(alignment: Alignment.centerLeft, child: _label('Título do compromisso *')),
           const SizedBox(height: 8),
           TextField(
-            controller: _tituloController,
+            controller: _titleController,
             onChanged: (_) => setState(() {}),
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration('Ex: Anatomia Humana'),
-          ),
-          const SizedBox(height: 18),
-          Align(alignment: Alignment.centerLeft, child: _label('Descrição (opcional)')),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _descricaoController,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration('O que você vai estudar aqui?'),
+            decoration: _inputDecoration('Título'),
           ),
           const SizedBox(height: 24),
           Row(
@@ -122,12 +123,9 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _canCreate
+                  onPressed: _canSave
                       ? () {
-                          Navigator.of(context).pop(CollectionFormData(
-                            titulo: _tituloController.text.trim(),
-                            descricao: _descricaoController.text.trim(),
-                          ));
+                          Navigator.of(context).pop(_titleController.text.trim());
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -136,7 +134,7 @@ class _CreateCollectionDialogState extends State<CreateCollectionDialog> {
                     disabledBackgroundColor: Colors.grey,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Criar'),
+                  child: const Text('Salvar'),
                 ),
               ),
             ],
