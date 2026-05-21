@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sabidos2app/presentation/pages/teste2.dart';
 import './widgets/b_navbar.dart';
 import 'package:sabidos2app/presentation/pages/flashcards_page.dart';
 import 'package:sabidos2app/presentation/pages/dashboard_page.dart';
@@ -31,7 +32,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     
     switch (_currentIndex) {
       case 0:
-        currentPage = const DashboardPage();
+        currentPage = const AchievementPage();
         break;
       case 1:
         currentPage = const FlashcardsPage();
