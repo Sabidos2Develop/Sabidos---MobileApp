@@ -6,8 +6,6 @@ import 'package:sabidos2app/domain/models/resumo.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-
-
 class ResumoPage extends StatefulWidget {
   const ResumoPage({super.key});
 
@@ -26,6 +24,10 @@ class _ResumoPageState extends State<ResumoPage> {
   late stt.SpeechToText speech;
   String recognizedWords = ""; // Para evitar duplicação
   String lastFinalResult = "";
+
+  // Instância do FlutterTts e controle de estado da reprodução
+  final FlutterTts flutterTts = FlutterTts();
+  bool isSpeaking = false;
 
   String tamanhoFonte = "base";
   Resumo? selectedResumo;
@@ -99,7 +101,7 @@ class _ResumoPageState extends State<ResumoPage> {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}";
   }
 
- void toggleMic() async {
+  void toggleMic() async {
     if (!isListening) {
       // 🎤 Pedir permissão de microfone
       final status = await Permission.microphone.request();
@@ -181,7 +183,6 @@ class _ResumoPageState extends State<ResumoPage> {
     }
   }
 
-
   double getFontSize() {
     switch (tamanhoFonte) {
       case "sm":
@@ -254,102 +255,116 @@ class _ResumoPageState extends State<ResumoPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         side: BorderSide(color: Color(0xFF423E51)),
       ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                r.titulo,
-                style: const TextStyle(
-                  color: Color(0xFFFBCA4E),
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2E),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF423E51)),
-                ),
-                child: Text(
-                  r.descricao,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: getFontSize(),
-                    height: 1.5,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      alternarFonte();
-                      Navigator.pop(context);
-                      abrirModal(r);
-                    },
-                    icon: const Icon(Icons.format_size),
-                    label: const Text("Fonte"),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white70),
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            editingResumo = r;
-                            _tituloController.text = r.titulo;
-                            _descricaoController.text = r.descricao;
-                          });
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Editar", style: TextStyle(color: Colors.blueAccent)),
+                  const SizedBox(height: 24),
+                  Text(
+                    r.titulo,
+                    style: const TextStyle(
+                      color: Color(0xFFFBCA4E),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF423E51)),
+                    ),
+                    child: Text(
+                      r.descricao,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: getFontSize(),
+                        height: 1.5,
                       ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                              onPressed: () async {
-                                toggleLeitura(r.descricao);
-                                // Pequeno delay para sincronizar o estado visual do botão no modal
-                                await Future.delayed(
-                                  const Duration(milliseconds: 100),
-                                );
-                                setModalState(() {});
-                              },
-                              // 🌟 Muda dinamicamente o texto com base no estado da fala
-                              child: Text(isSpeaking ? "Parar" : "Ouvir"),
-                            ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      OutlinedButton.icon(
                         onPressed: () {
-                          deletarResumo(r.id);
+                          alternarFonte();
                           Navigator.pop(context);
+                          abrirModal(r);
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                        child: const Text("Excluir", style: TextStyle(color: Colors.white)),
+                        icon: const Icon(Icons.format_size),
+                        label: const Text("Fonte"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                editingResumo = r;
+                                _tituloController.text = r.titulo;
+                                _descricaoController.text = r.descricao;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text(
+                              "Editar",
+                              style: TextStyle(color: Colors.blueAccent),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () async {
+                              toggleLeitura(r.descricao);
+                              // Pequeno delay para sincronizar o estado visual do botão no modal
+                              await Future.delayed(
+                                const Duration(milliseconds: 100),
+                              );
+                              setModalState(() {});
+                            },
+                            // 🌟 Muda dinamicamente o texto com base no estado da fala
+                            child: Text(isSpeaking ? "Parar" : "Ouvir"),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              deletarResumo(r.id);
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                            ),
+                            child: const Text(
+                              "Excluir",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -476,13 +491,13 @@ class _ResumoPageState extends State<ResumoPage> {
               //     ),
               //   ),
               // ),
-            IconButton(
-                      icon: Icon(
-                        isListening ? Icons.mic : Icons.mic_none,
-                        color: Colors.yellow,
-                      ),
-                      onPressed: toggleMic,
-                    ),
+              IconButton(
+                icon: Icon(
+                  isListening ? Icons.mic : Icons.mic_none,
+                  color: Colors.yellow,
+                ),
+                onPressed: toggleMic,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
