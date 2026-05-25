@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:sabidos2app/domain/models/resumo.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+
 
 class ResumoPage extends StatefulWidget {
   const ResumoPage({super.key});
@@ -20,6 +24,8 @@ class _ResumoPageState extends State<ResumoPage> {
 
   bool isListening = false;
   late stt.SpeechToText speech;
+  String recognizedWords = ""; // Para evitar duplicação
+  String lastFinalResult = "";
 
   String tamanhoFonte = "base";
   Resumo? selectedResumo;
@@ -93,23 +99,88 @@ class _ResumoPageState extends State<ResumoPage> {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}";
   }
 
-  void toggleMic() async {
+ void toggleMic() async {
     if (!isListening) {
-      bool available = await speech.initialize();
+      // 🎤 Pedir permissão de microfone
+      final status = await Permission.microphone.request();
+
+      if (status.isDenied) {
+        // Permissão negada
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão de microfone negada')),
+        );
+        return;
+      }
+
+      if (status.isPermanentlyDenied) {
+        // Permissão permanentemente negada, abrir configurações
+        openAppSettings();
+        return;
+      }
+
+      bool available = await speech.initialize(
+        onError: (error) {
+          print('Erro de fala: $error');
+          setState(() => isListening = false);
+        },
+        onStatus: (status) {
+          print('Status de fala: $status');
+        },
+      );
+
       if (available) {
-        setState(() => isListening = true);
+        setState(() {
+          isListening = true;
+          recognizedWords = ""; // Limpar palavras anteriores
+          lastFinalResult = "";
+        });
+
         speech.listen(
           localeId: "pt_BR",
+          listenMode: stt.ListenMode.dictation,
+          listenFor: const Duration(minutes: 10),
+          pauseFor: const Duration(seconds: 10),
           onResult: (result) {
-            _descricaoController.text += " ${result.recognizedWords}";
+            setState(() {
+              if (result.finalResult) {
+                final newText = result.recognizedWords.trim();
+                if (newText.isNotEmpty) {
+                  final current = _descricaoController.text.trim();
+                  if (lastFinalResult.isNotEmpty &&
+                      current.endsWith(lastFinalResult)) {
+                    final updated = current
+                        .substring(0, current.length - lastFinalResult.length)
+                        .trimRight();
+                    _descricaoController.text = [
+                      updated,
+                      newText,
+                    ].where((e) => e.isNotEmpty).join(' ');
+                  } else {
+                    _descricaoController.text = [
+                      current,
+                      newText,
+                    ].where((e) => e.isNotEmpty).join(' ');
+                  }
+                  lastFinalResult = newText;
+                }
+              } else {
+                recognizedWords = result.recognizedWords;
+              }
+            });
           },
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech to text não disponível')),
+        );
+        setState(() => isListening = false);
       }
     } else {
       speech.stop();
       setState(() => isListening = false);
     }
   }
+
 
   double getFontSize() {
     switch (tamanhoFonte) {
@@ -131,6 +202,47 @@ class _ResumoPageState extends State<ResumoPage> {
       else
         tamanhoFonte = "sm";
     });
+  }
+
+  // 🌟 Ajuste: Configuração assíncrona da voz e handlers de estado
+  void configurarVoz() async {
+    await flutterTts.setLanguage("pt-BR");
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setVolume(1.0);
+    await flutterTts.setPitch(1.0);
+
+    // Atualiza o estado da UI quando a fala começar ou terminar
+    flutterTts.setStartHandler(() {
+      setState(() => isSpeaking = true);
+    });
+
+    flutterTts.setCompletionHandler(() {
+      setState(() => isSpeaking = false);
+    });
+
+    flutterTts.setCancelHandler(() {
+      setState(() => isSpeaking = false);
+    });
+  }
+
+  // 🌟 Ajuste: Alterna entre falar e parar a voz
+  void toggleLeitura(String texto) async {
+    if (isSpeaking) {
+      await flutterTts.stop();
+    } else {
+      if (texto.isNotEmpty) {
+        await flutterTts.speak(texto);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descricaoController.dispose();
+    speech.stop(); // Parar de escutar
+    flutterTts.stop(); // 🌟 Evita vazamento de memória e áudio fantasma
+    super.dispose();
   }
 
   void abrirModal(Resumo r) {
@@ -210,6 +322,19 @@ class _ResumoPageState extends State<ResumoPage> {
                         },
                         child: const Text("Editar", style: TextStyle(color: Colors.blueAccent)),
                       ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                              onPressed: () async {
+                                toggleLeitura(r.descricao);
+                                // Pequeno delay para sincronizar o estado visual do botão no modal
+                                await Future.delayed(
+                                  const Duration(milliseconds: 100),
+                                );
+                                setModalState(() {});
+                              },
+                              // 🌟 Muda dinamicamente o texto com base no estado da fala
+                              child: Text(isSpeaking ? "Parar" : "Ouvir"),
+                            ),
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: () {
@@ -333,24 +458,31 @@ class _ResumoPageState extends State<ResumoPage> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: toggleMic,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isListening ? Colors.red : Colors.green,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Text(
-                        isListening ? "Parar 🎤" : "Iniciar 🎤",
-                        style: const TextStyle(color: Colors.white),
+              // Expanded(
+              //   child: GestureDetector(
+              //     onTap: toggleMic,
+              //     child: Container(
+              //       padding: const EdgeInsets.symmetric(vertical: 14),
+              //       decoration: BoxDecoration(
+              //         color: isListening ? Colors.red : Colors.green,
+              //         borderRadius: BorderRadius.circular(10),
+              //       ),
+              //       child: Center(
+              //         child: Text(
+              //           isListening ? "Parar 🎤" : "Iniciar 🎤",
+              //           style: const TextStyle(color: Colors.white),
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              // ),
+            IconButton(
+                      icon: Icon(
+                        isListening ? Icons.mic : Icons.mic_none,
+                        color: Colors.yellow,
                       ),
+                      onPressed: toggleMic,
                     ),
-                  ),
-                ),
-              ),
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
