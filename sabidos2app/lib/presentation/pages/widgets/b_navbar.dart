@@ -56,7 +56,10 @@ class BottomNavbar extends StatelessWidget {
             icon: Icon(Icons.sticky_note_2_rounded),
             label: 'Resumos',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle),
+            label: 'Perfil',
+          ),
         ],
       ),
     );
