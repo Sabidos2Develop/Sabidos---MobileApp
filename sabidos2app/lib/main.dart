@@ -16,7 +16,7 @@ import 'package:sabidos2app/presentation/pages/perfil_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // PEGADOR DE ERROS GLOBAL
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
       // 👇 ESSENCIAL
       themeMode: controller.themeMode,
 
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
 
       darkTheme: AppTheme.darkTheme,
 

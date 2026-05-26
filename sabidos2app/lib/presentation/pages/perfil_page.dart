@@ -7,6 +7,7 @@ import 'package:sabidos2app/data/core/models/achievement_catalog.dart';
 import 'package:sabidos2app/presentation/pages/widgets/achievement_card.dart';
 import 'package:sabidos2app/core/theme/app_colors.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
+import 'package:sabidos2app/data/datasources/GamificationService.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -37,14 +38,7 @@ class _PerfilPageState extends State<PerfilPage> {
       isLoadingAchievements = true;
     });
 
-    final stats = UserStats(
-      resumosCriados: 1,
-      pomodorosConcluidos: 2,
-      flashcardsCriados: 8,
-      eventosCriados: 10,
-      diasSequencia: 1,
-      totalAcoes: 24,
-    );
+    final stats = await GamificationService().getUserStats();
 
     final data = AchievementCatalog.buildFromStats(stats);
 
