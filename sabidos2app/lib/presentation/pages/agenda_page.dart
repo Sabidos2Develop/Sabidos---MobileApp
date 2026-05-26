@@ -35,35 +35,64 @@ class _AgendaPageState extends State<AgendaPage> {
   }
 
   Future<void> _loadEvents() async {
+  if (!mounted) return;
+
+  if (!_isFirstLoad && _isLoading) return;
+
+  setState(() => _isLoading = true);
+
+  try {
+    final data = await _repository.getEvents();
+
     if (!mounted) return;
 
-    // Evita múltiplos carregamentos simultâneos
-    if (!_isFirstLoad && _isLoading) return;
+    final Map<DateTime, List<AgendaEventModel>> newEvents = {};
 
-    setState(() => _isLoading = true);
+    for (var event in data) {
+      final eventDate = DateTime(
+        event.date.year,
+        event.date.month,
+        event.date.day,
+      );
 
-    try {
-      final data = await _repository.getEvents();
-
-      if (!mounted) return;
-
-      final Map<DateTime, List<AgendaEventModel>> newEvents = {};
-      for (var e in data) {
-        final date = DateTime(e.date.year, e.date.month, e.date.day);
-        if (newEvents[date] == null) newEvents[date] = [];
-        newEvents[date]!.add(e);
+      if (newEvents[eventDate] == null) {
+        newEvents[eventDate] = [];
       }
-
-      setState(() {
-        events = newEvents;
-        _isLoading = false;
-        _isFirstLoad = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-      debugPrint('Erro ao carregar eventos: $e');
+      newEvents[eventDate]!.add(event);
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      events = newEvents;
+      _isLoading = false;
+      _isFirstLoad = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    final errorMessage = 'Erro ao carregar eventos';
+    
+    setState(() {
+      _isLoading = false;
+      _isFirstLoad = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Tentar',
+          onPressed: _loadEvents,
+        ),
+      ),
+    );
+
+    debugPrint('Erro ao carregar eventos: $e');
   }
+}
 
   List<AgendaEventModel> _getEventsForDay(DateTime day) {
     return events[DateTime(day.year, day.month, day.day)] ?? [];

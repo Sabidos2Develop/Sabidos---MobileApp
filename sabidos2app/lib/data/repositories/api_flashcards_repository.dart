@@ -19,20 +19,23 @@ class ApiFlashcardsRepository {
     try {
       final response = await apiClient.get('/FlashcardCollection');
       final data = response.data as List;
-      
+
       List<FlashcardCollection> colecoes = [];
       for (var item in data) {
-        colecoes.add(FlashcardCollection(
-          id: item['id'],
-          titulo: item['name'],
-          descricao: item['color'] ?? '',
-          criadoEm: DateTime.parse(item['createdAt']),
-          flashcards: [], // Não carrega os cards aqui para ser rápido
-        ));
+        colecoes.add(
+          FlashcardCollection(
+            id: item['id'],
+            titulo: item['name'],
+            descricao: item['color'] ?? '',
+            criadoEm: DateTime.parse(item['createdAt']),
+            flashcards: [], // Não carrega os cards aqui para ser rápido
+          ),
+        );
       }
       return colecoes;
     } catch (e) {
-      print('Erro getCollections: $e'); return [];
+      print('Erro getCollections: $e');
+      return [];
     }
   }
 
@@ -45,9 +48,9 @@ class ApiFlashcardsRepository {
       // 2. Pega os cards dessa coleção especificamente
       final cardsRes = await apiClient.get('/Flashcard/collection/$id');
       final cardsData = cardsRes.data as List;
-      
+
       List<FlashcardModel> cartas = cardsData.map((c) => _mapCard(c)).toList();
-      
+
       return FlashcardCollection(
         id: item['id'],
         titulo: item['name'],
@@ -55,25 +58,31 @@ class ApiFlashcardsRepository {
         criadoEm: DateTime.parse(item['createdAt']),
         flashcards: cartas,
       );
-    } catch (e) { 
-      print('ERRO getCollectionById: $e'); 
-      return null; 
+    } catch (e) {
+      print('ERRO getCollectionById: $e');
+      return null;
     }
   }
 
   Future<void> addCollection(FlashcardCollection collection) async {
     try {
-      await apiClient.post('/FlashcardCollection', data: {
-        'name': collection.titulo,
-        'color': collection.descricao,
-      });
-    } catch (e) { print('ERRO FATAL API: $e'); throw Exception(e); }
+      await apiClient.post(
+        '/FlashcardCollection',
+        data: {'name': collection.titulo, 'color': collection.descricao},
+      );
+    } catch (e) {
+      print('ERRO FATAL API: $e');
+      throw Exception(e);
+    }
   }
 
   Future<void> deleteCollection(String collectionId) async {
     try {
       await apiClient.delete('/FlashcardCollection/$collectionId');
-    } catch (e) { print('ERRO FATAL API: $e'); throw Exception(e); }
+    } catch (e) {
+      print('ERRO FATAL API: $e');
+      throw Exception(e);
+    }
   }
 
   Future<void> addCardToCollection(
@@ -81,18 +90,34 @@ class ApiFlashcardsRepository {
     FlashcardModel card,
   ) async {
     try {
-      await apiClient.post('/Flashcard', data: {
-        'collectionId': collectionId,
-        'front': card.frente,
-        'back': card.verso,
-      });
-    } catch (e) { print('ERRO FATAL API: $e'); throw Exception(e); }
+      await apiClient.post(
+        '/Flashcard',
+        data: {
+          'collectionId': collectionId,
+          'front': card.frente,
+          'back': card.verso,
+        },
+      );
+    } catch (e) {
+      print('ERRO FATAL API: $e');
+      throw Exception(e);
+    }
   }
 
   Future<void> updateCardInCollection(
     String collectionId,
     FlashcardModel updatedCard,
-  ) async {}
+  ) async {
+    try {
+      await apiClient.put(
+        '/Flashcard/${updatedCard.id}',
+        data: {'front': updatedCard.frente, 'back': updatedCard.verso},
+      );
+    } catch (e) {
+      print('ERRO ao atualizar flashcard: $e');
+      throw Exception('Falha ao atualizar flashcard: $e');
+    }
+  }
 
   Future<void> deleteCardFromCollection(
     String collectionId,
@@ -100,6 +125,9 @@ class ApiFlashcardsRepository {
   ) async {
     try {
       await apiClient.delete('/Flashcard/$cardId');
-    } catch (e) { print('ERRO FATAL API: $e'); throw Exception(e); }
+    } catch (e) {
+      print('ERRO FATAL API: $e');
+      throw Exception(e);
+    }
   }
 }

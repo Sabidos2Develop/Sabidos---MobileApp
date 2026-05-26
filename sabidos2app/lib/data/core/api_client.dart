@@ -27,13 +27,15 @@ class ApiClient {
             if (user != null) {
               // Timeout de segurança para o Firebase não travar o app
               final token = await user.getIdToken().timeout(
-                const Duration(milliseconds: 500),
+                const Duration(seconds: 2), // ✅ CORRIGIDO: 2 segundos
                 onTimeout: () {
-                  debugPrint('--- TIMEOUT NO TOKEN (Firebase lento ou desconfigurado) ---');
+                  debugPrint(
+                    '--- TIMEOUT NO TOKEN (Firebase lento ou desconfigurado) ---',
+                  );
                   return '';
                 },
               );
-              
+
               if (token != null && token.isNotEmpty) {
                 options.headers['Authorization'] = 'Bearer $token';
               }

@@ -45,12 +45,30 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
         _collections = data;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+
+      final errorMessage = 'Erro ao carregar coleções';
+
       setState(() {
-        _error = 'Falha ao carregar coleções.';
+        _error = errorMessage;
         _loading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Tentar de novo',
+            textColor: Colors.white,
+            onPressed: _loadCollections,
+          ),
+        ),
+      );
+
+      debugPrint('Erro ao carregar coleções: $e');
     }
   }
 
@@ -130,11 +148,19 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 50),
+            const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.redAccent,
+              size: 50,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Excluir coleção?',
-              style: TextStyle(color: Color(0xFFFBCB4E), fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFFFBCB4E),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -164,7 +190,13 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Excluir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Excluir',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -406,7 +438,9 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          debugPrint('--- CLIQUE DETECTADO NO CORPO: ${collection.titulo} ---');
+                          debugPrint(
+                            '--- CLIQUE DETECTADO NO CORPO: ${collection.titulo} ---',
+                          );
                           _openCollectionDetails(collection);
                         },
                         child: Padding(
@@ -669,11 +703,19 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
               ),
             ),
             const SizedBox(height: 24),
-            const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 50),
+            const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.redAccent,
+              size: 50,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Excluir card?',
-              style: TextStyle(color: Color(0xFFFBCB4E), fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFFFBCB4E),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -703,7 +745,13 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Sim, Excluir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Sim, Excluir',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1120,7 +1168,9 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                                     ? const Color(0xFF2A2438)
                                     : const Color(0xFF1A1A2E),
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFF423E51)),
+                                border: Border.all(
+                                  color: const Color(0xFF423E51),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1474,10 +1524,7 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
                   const SizedBox(height: 8),
                   Text(
                     '$percent% de aproveitamento',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 8),
                   Text(

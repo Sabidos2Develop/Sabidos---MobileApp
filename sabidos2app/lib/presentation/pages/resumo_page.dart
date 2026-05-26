@@ -22,10 +22,10 @@ class _ResumoPageState extends State<ResumoPage> {
 
   bool isListening = false;
   late stt.SpeechToText speech;
-  String recognizedWords = ""; // Para evitar duplicação
+
+  String recognizedWords = "";
   String lastFinalResult = "";
 
-  // Instância do FlutterTts e controle de estado da reprodução
   final FlutterTts flutterTts = FlutterTts();
   bool isSpeaking = false;
 
@@ -36,7 +36,32 @@ class _ResumoPageState extends State<ResumoPage> {
   @override
   void initState() {
     super.initState();
+
     speech = stt.SpeechToText();
+
+    configurarVoz();
+    _requestMicrophonePermission();
+  }
+
+  Future<void> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+
+    if (status.isPermanentlyDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Habilite permissão de microfone nas configurações',
+            ),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Configurar',
+              onPressed: openAppSettings,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   String get userId => _auth.currentUser?.uid ?? "";
@@ -47,17 +72,19 @@ class _ResumoPageState extends State<ResumoPage> {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-          final list = snapshot.docs
-              .map((doc) => Resumo.fromMap(doc.id, doc.data()))
-              .toList();
+      final list = snapshot.docs
+          .map((doc) => Resumo.fromMap(doc.id, doc.data()))
+          .toList();
 
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      return list;
+    });
   }
 
   Future<void> salvarResumo() async {
-    if (_tituloController.text.isEmpty || _descricaoController.text.isEmpty) {
+    if (_tituloController.text.isEmpty ||
+        _descricaoController.text.isEmpty) {
       return;
     }
 
@@ -102,85 +129,126 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   void toggleMic() async {
-    if (!isListening) {
-      // 🎤 Pedir permissão de microfone
-      final status = await Permission.microphone.request();
+    if (isListening) {
+      await speech.stop();
 
-      if (status.isDenied) {
-        // Permissão negada
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissão de microfone negada')),
-        );
-        return;
-      }
-
-      if (status.isPermanentlyDenied) {
-        // Permissão permanentemente negada, abrir configurações
-        openAppSettings();
-        return;
-      }
-
-      bool available = await speech.initialize(
-        onError: (error) {
-          print('Erro de fala: $error');
-          setState(() => isListening = false);
-        },
-        onStatus: (status) {
-          print('Status de fala: $status');
-        },
-      );
-
-      if (available) {
-        setState(() {
-          isListening = true;
-          recognizedWords = ""; // Limpar palavras anteriores
-          lastFinalResult = "";
-        });
-
-        speech.listen(
-          localeId: "pt_BR",
-          listenMode: stt.ListenMode.dictation,
-          listenFor: const Duration(minutes: 10),
-          pauseFor: const Duration(seconds: 10),
-          onResult: (result) {
-            setState(() {
-              if (result.finalResult) {
-                final newText = result.recognizedWords.trim();
-                if (newText.isNotEmpty) {
-                  final current = _descricaoController.text.trim();
-                  if (lastFinalResult.isNotEmpty &&
-                      current.endsWith(lastFinalResult)) {
-                    final updated = current
-                        .substring(0, current.length - lastFinalResult.length)
-                        .trimRight();
-                    _descricaoController.text = [
-                      updated,
-                      newText,
-                    ].where((e) => e.isNotEmpty).join(' ');
-                  } else {
-                    _descricaoController.text = [
-                      current,
-                      newText,
-                    ].where((e) => e.isNotEmpty).join(' ');
-                  }
-                  lastFinalResult = newText;
-                }
-              } else {
-                recognizedWords = result.recognizedWords;
-              }
-            });
-          },
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech to text não disponível')),
-        );
+      if (mounted) {
         setState(() => isListening = false);
       }
-    } else {
-      speech.stop();
-      setState(() => isListening = false);
+
+      return;
     }
+
+    final status = await Permission.microphone.status;
+
+    if (!status.isGranted) {
+      final result = await Permission.microphone.request();
+
+      if (!result.isGranted) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permissão de microfone é necessária'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        return;
+      }
+    }
+
+    bool available = await speech.initialize(
+      onError: (error) {
+        debugPrint('Erro de fala: $error');
+
+        if (mounted) {
+          setState(() => isListening = false);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      onStatus: (status) {
+        debugPrint('Status de fala: $status');
+
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) {
+            setState(() => isListening = false);
+          }
+        }
+      },
+    );
+
+    if (!available) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Microfone não disponível'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        isListening = true;
+        recognizedWords = "";
+        lastFinalResult = "";
+      });
+    }
+
+    speech.listen(
+      localeId: "pt_BR",
+      listenMode: stt.ListenMode.dictation,
+      listenFor: const Duration(minutes: 10),
+      pauseFor: const Duration(seconds: 10),
+      onResult: (result) {
+        if (!mounted) return;
+
+        setState(() {
+          if (result.finalResult) {
+            final newText = result.recognizedWords.trim();
+
+            if (newText.isNotEmpty) {
+              final current = _descricaoController.text.trim();
+
+              if (lastFinalResult.isNotEmpty &&
+                  current.endsWith(lastFinalResult)) {
+                final updated = current
+                    .substring(
+                      0,
+                      current.length - lastFinalResult.length,
+                    )
+                    .trimRight();
+
+                _descricaoController.text = [
+                  updated,
+                  newText,
+                ].where((e) => e.isNotEmpty).join(' ');
+              } else {
+                _descricaoController.text = [
+                  current,
+                  newText,
+                ].where((e) => e.isNotEmpty).join(' ');
+              }
+
+              lastFinalResult = newText;
+            }
+          } else {
+            recognizedWords = result.recognizedWords;
+          }
+        });
+      },
+    );
   }
 
   double getFontSize() {
@@ -198,21 +266,20 @@ class _ResumoPageState extends State<ResumoPage> {
     setState(() {
       if (tamanhoFonte == "sm") {
         tamanhoFonte = "base";
-      } else if (tamanhoFonte == "base")
+      } else if (tamanhoFonte == "base") {
         tamanhoFonte = "lg";
-      else
+      } else {
         tamanhoFonte = "sm";
+      }
     });
   }
 
-  // 🌟 Ajuste: Configuração assíncrona da voz e handlers de estado
   void configurarVoz() async {
     await flutterTts.setLanguage("pt-BR");
     await flutterTts.setSpeechRate(0.5);
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.0);
 
-    // Atualiza o estado da UI quando a fala começar ou terminar
     flutterTts.setStartHandler(() {
       setState(() => isSpeaking = true);
     });
@@ -226,7 +293,6 @@ class _ResumoPageState extends State<ResumoPage> {
     });
   }
 
-  // 🌟 Ajuste: Alterna entre falar e parar a voz
   void toggleLeitura(String texto) async {
     if (isSpeaking) {
       await flutterTts.stop();
@@ -241,8 +307,10 @@ class _ResumoPageState extends State<ResumoPage> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
-    speech.stop(); // Parar de escutar
-    flutterTts.stop(); // 🌟 Evita vazamento de memória e áudio fantasma
+
+    speech.stop();
+    flutterTts.stop();
+
     super.dispose();
   }
 
@@ -323,6 +391,7 @@ class _ResumoPageState extends State<ResumoPage> {
                                 _tituloController.text = r.titulo;
                                 _descricaoController.text = r.descricao;
                               });
+
                               Navigator.pop(context);
                             },
                             child: const Text(
@@ -334,13 +403,13 @@ class _ResumoPageState extends State<ResumoPage> {
                           TextButton(
                             onPressed: () async {
                               toggleLeitura(r.descricao);
-                              // Pequeno delay para sincronizar o estado visual do botão no modal
+
                               await Future.delayed(
                                 const Duration(milliseconds: 100),
                               );
+
                               setModalState(() {});
                             },
-                            // 🌟 Muda dinamicamente o texto com base no estado da fala
                             child: Text(isSpeaking ? "Parar" : "Ouvir"),
                           ),
                           const SizedBox(width: 8),
@@ -380,7 +449,6 @@ class _ResumoPageState extends State<ResumoPage> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < 800) {
-                // Layout Vertical para Mobile
                 return SingleChildScrollView(
                   child: Column(
                     children: [
@@ -391,7 +459,6 @@ class _ResumoPageState extends State<ResumoPage> {
                   ),
                 );
               } else {
-                // Layout Horizontal para Desktop
                 return Row(
                   children: [
                     Expanded(flex: 2, child: _buildEditor()),
@@ -415,14 +482,18 @@ class _ResumoPageState extends State<ResumoPage> {
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF423E51)),
-        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
+        boxShadow: const [
+          BoxShadow(color: Colors.black54, blurRadius: 20),
+        ],
       ),
       child: Column(
         children: [
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              editingResumo != null ? "Editar Resumo" : "Novo Resumo",
+              editingResumo != null
+                  ? "Editar Resumo"
+                  : "Novo Resumo",
               style: const TextStyle(
                 color: Color(0xFFFBCA4E),
                 fontSize: 22,
@@ -473,35 +544,21 @@ class _ResumoPageState extends State<ResumoPage> {
           const SizedBox(height: 20),
           Row(
             children: [
-              // Expanded(
-              //   child: GestureDetector(
-              //     onTap: toggleMic,
-              //     child: Container(
-              //       padding: const EdgeInsets.symmetric(vertical: 14),
-              //       decoration: BoxDecoration(
-              //         color: isListening ? Colors.red : Colors.green,
-              //         borderRadius: BorderRadius.circular(10),
-              //       ),
-              //       child: Center(
-              //         child: Text(
-              //           isListening ? "Parar 🎤" : "Iniciar 🎤",
-              //           style: const TextStyle(color: Colors.white),
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // ),
               IconButton(
                 icon: Icon(
                   isListening ? Icons.mic : Icons.mic_none,
-                  color: Colors.yellow,
+                  color: isListening
+                      ? Colors.redAccent
+                      : Colors.yellow,
                 ),
                 onPressed: toggleMic,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
-                  onTap: editingResumo != null ? editarResumo : salvarResumo,
+                  onTap: editingResumo != null
+                      ? editarResumo
+                      : salvarResumo,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
@@ -535,7 +592,9 @@ class _ResumoPageState extends State<ResumoPage> {
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF423E51)),
-        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
+        boxShadow: const [
+          BoxShadow(color: Colors.black54, blurRadius: 20),
+        ],
       ),
       child: Column(
         children: [
@@ -562,10 +621,14 @@ class _ResumoPageState extends State<ResumoPage> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFFBCA4E),
+                    ),
                   );
                 }
+
                 final resumos = snapshot.data!;
+
                 if (resumos.isEmpty) {
                   return const Center(
                     child: Text(
@@ -574,10 +637,12 @@ class _ResumoPageState extends State<ResumoPage> {
                     ),
                   );
                 }
+
                 return ListView.builder(
                   itemCount: resumos.length,
                   itemBuilder: (_, i) {
                     final r = resumos[i];
+
                     return GestureDetector(
                       onTap: () => abrirModal(r),
                       child: Container(
@@ -610,7 +675,9 @@ class _ResumoPageState extends State<ResumoPage> {
                               r.descricao,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white70),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                              ),
                             ),
                           ],
                         ),
