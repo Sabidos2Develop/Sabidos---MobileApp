@@ -43,7 +43,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
     switch (_currentIndex) {
       case 0:
-        currentPage = const AchievementPage();
+        currentPage = const DashboardPage();
         break;
       case 1:
         currentPage = const FlashcardsPage();

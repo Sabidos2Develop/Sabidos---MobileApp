@@ -35,21 +35,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
     try {
       final stats = await _gamification.getUserStats();
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _stats = stats;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _error = 'Erro ao carregar estatísticas';
         _loading = false;
       });
-      
+
       debugPrint('Erro ao carregar stats: $e');
     }
   }
@@ -89,7 +89,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final stats = _stats ?? UserStats.empty();
-    
+
     final studySeconds = stats.totalAcoes * 60;
     final notas = stats.resumosCriados;
     final cards = stats.flashcardsCriados;

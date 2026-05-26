@@ -72,19 +72,18 @@ class _ResumoPageState extends State<ResumoPage> {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => Resumo.fromMap(doc.id, doc.data()))
-          .toList();
+          final list = snapshot.docs
+              .map((doc) => Resumo.fromMap(doc.id, doc.data()))
+              .toList();
 
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      return list;
-    });
+          return list;
+        });
   }
 
   Future<void> salvarResumo() async {
-    if (_tituloController.text.isEmpty ||
-        _descricaoController.text.isEmpty) {
+    if (_tituloController.text.isEmpty || _descricaoController.text.isEmpty) {
       return;
     }
 
@@ -224,10 +223,7 @@ class _ResumoPageState extends State<ResumoPage> {
               if (lastFinalResult.isNotEmpty &&
                   current.endsWith(lastFinalResult)) {
                 final updated = current
-                    .substring(
-                      0,
-                      current.length - lastFinalResult.length,
-                    )
+                    .substring(0, current.length - lastFinalResult.length)
                     .trimRight();
 
                 _descricaoController.text = [
@@ -482,18 +478,14 @@ class _ResumoPageState extends State<ResumoPage> {
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF423E51)),
-        boxShadow: const [
-          BoxShadow(color: Colors.black54, blurRadius: 20),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
       ),
       child: Column(
         children: [
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              editingResumo != null
-                  ? "Editar Resumo"
-                  : "Novo Resumo",
+              editingResumo != null ? "Editar Resumo" : "Novo Resumo",
               style: const TextStyle(
                 color: Color(0xFFFBCA4E),
                 fontSize: 22,
@@ -547,18 +539,14 @@ class _ResumoPageState extends State<ResumoPage> {
               IconButton(
                 icon: Icon(
                   isListening ? Icons.mic : Icons.mic_none,
-                  color: isListening
-                      ? Colors.redAccent
-                      : Colors.yellow,
+                  color: isListening ? Colors.redAccent : Colors.yellow,
                 ),
                 onPressed: toggleMic,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
-                  onTap: editingResumo != null
-                      ? editarResumo
-                      : salvarResumo,
+                  onTap: editingResumo != null ? editarResumo : salvarResumo,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
@@ -592,9 +580,7 @@ class _ResumoPageState extends State<ResumoPage> {
         color: const Color(0xFF292535),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF423E51)),
-        boxShadow: const [
-          BoxShadow(color: Colors.black54, blurRadius: 20),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
       ),
       child: Column(
         children: [
@@ -621,9 +607,7 @@ class _ResumoPageState extends State<ResumoPage> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFFBCA4E),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
                   );
                 }
 
@@ -675,9 +659,7 @@ class _ResumoPageState extends State<ResumoPage> {
                               r.descricao,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                              ),
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ],
                         ),
