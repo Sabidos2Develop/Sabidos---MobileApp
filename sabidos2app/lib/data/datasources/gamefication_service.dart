@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../core/api_client.dart';
 import '../core/models/user_stats.dart';
 
-class GamificationService {
+class gamefication_service {
   final Dio dio = apiClient;
 
   Future<UserStats> getUserStats() async {
