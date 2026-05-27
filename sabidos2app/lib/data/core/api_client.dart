@@ -14,8 +14,8 @@ class ApiClient {
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
 
@@ -28,7 +28,7 @@ class ApiClient {
             if (user != null) {
               // Timeout de segurança para o Firebase não travar o app
               final token = await user.getIdToken().timeout(
-                const Duration(seconds: 2), // ✅ CORRIGIDO: 2 segundos
+                const Duration(seconds: 10),
                 onTimeout: () {
                   debugPrint(
                     '--- TIMEOUT NO TOKEN (Firebase lento ou desconfigurado) ---',

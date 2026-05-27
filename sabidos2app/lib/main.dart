@@ -10,7 +10,10 @@ import 'package:sabidos2app/core/theme/app_theme.dart';
 import 'package:sabidos2app/core/theme/theme_storage.dart';
 import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
-import 'package:sabidos2app/presentation/pages/achievements.dart';
+import 'package:sabidos2app/presentation/controllers/gamification_controller.dart';
+import 'package:sabidos2app/presentation/controllers/collection_controller.dart';
+import 'package:sabidos2app/presentation/controllers/agenda_controller.dart';
+import 'package:sabidos2app/presentation/controllers/notification_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +39,17 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => ResumoController(ResumoService()),
         ),
+
+        ChangeNotifierProvider(create: (_) => NotificationController()),
+
+        ChangeNotifierProxyProvider<NotificationController, GamificationController>(
+          create: (_) => GamificationController(),
+          update: (_, notification, gami) => gami!..setNotificationController(notification),
+        ),
+
+        ChangeNotifierProvider(create: (_) => CollectionController()),
+
+        ChangeNotifierProvider(create: (_) => AgendaController()),
 
         // 👇 USA A MESMA INSTÂNCIA
         ChangeNotifierProvider.value(value: themeController),

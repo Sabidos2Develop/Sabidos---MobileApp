@@ -3,33 +3,44 @@ import '../../domain/models/resumo.dart';
 import '../../data/datasources/resumo_service.dart';
 
 class ResumoController extends ChangeNotifier {
-  final ResumoService service;
+  final ResumoService _service;
 
-  ResumoController(this.service);
+  List<Resumo> _resumos = [];
+  bool _isLoading = false;
+  String _error = '';
 
-  List<Resumo> resumos = [];
-  bool loading = false;
+  ResumoController(this._service);
 
-  void listenResumos(String userId) {
-    loading = true;
+  List<Resumo> get resumos => _resumos;
+  bool get isLoading => _isLoading;
+  String get error => _error;
+
+  void listenToResumos(String userId) {
+    _isLoading = true;
+    _error = '';
     notifyListeners();
 
-    service.getResumos(userId).listen((data) {
-      resumos = data;
-      loading = false;
+    _service.getResumos(userId).listen((data) {
+      _resumos = data;
+      _isLoading = false;
       notifyListeners();
+    }, onError: (e) {
+      _error = 'Erro ao carregar resumos';
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Erro no ResumoController: $e');
     });
   }
 
-  Future<void> addResumo(Resumo resumo) async {
-    await service.addResumo(resumo);
+  Future<void> addResumo(Resumo resumo, {BuildContext? context}) async {
+    await _service.addResumo(resumo, context: context);
   }
 
   Future<void> deleteResumo(String id) async {
-    await service.deleteResumo(id);
+    await _service.deleteResumo(id);
   }
 
   Future<void> updateResumo(Resumo resumo) async {
-    await service.updateResumo(resumo);
+    await _service.updateResumo(resumo);
   }
 }

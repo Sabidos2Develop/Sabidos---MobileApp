@@ -16,11 +16,12 @@ class StudyTimeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).extension<AppColors>()!.cardLight,
-        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(context).extension<AppColors>()!.boxBorder,
+        borderRadius: BorderRadius.circular(16),
       ),
+
       child: Column(
         children: [
           Container(

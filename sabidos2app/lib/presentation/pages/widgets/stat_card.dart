@@ -19,7 +19,7 @@ class StatCard extends StatelessWidget {
       width: 100,
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
-        color: Theme.of(context).extension<AppColors>()!.cardLight,
+        color: Theme.of(context).extension<AppColors>()!.boxBorder,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

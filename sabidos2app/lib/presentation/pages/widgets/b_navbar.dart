@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sabidos2app/presentation/controllers/gamification_controller.dart';
 
 class BottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -12,6 +14,8 @@ class BottomNavbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasRewards = context.watch<GamificationController>().hasPendingRewards;
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF292535),
@@ -30,35 +34,42 @@ class BottomNavbar extends StatelessWidget {
         backgroundColor: const Color(0xFF292535),
         selectedItemColor: const Color(0xFFFBCB4E),
         unselectedItemColor: Colors.white54,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
+            icon: Stack(
+              children: [
+                const Icon(Icons.account_circle),
+                if (hasRewards)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
+            ), 
+            label: ''
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.style_rounded),
-            label: 'Flashcards',
-          ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(icon: Icon(Icons.style_rounded), label: ''),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month_rounded),
-            label: 'Agenda',
+            label: '',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timer_rounded),
-            label: 'Pomodoro',
-          ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(icon: Icon(Icons.timer_rounded), label: ''),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.sticky_note_2_rounded),
-            label: 'Resumos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle),
-            label: 'Perfil',
+            label: '',
           ),
         ],
       ),

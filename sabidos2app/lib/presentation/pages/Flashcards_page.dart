@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sabidos2app/data/repositories/api_flashcards_repository.dart';
 import 'package:sabidos2app/domain/models/flashcard_collection.dart';
 import 'package:sabidos2app/domain/models/flashcard_model.dart';
@@ -8,6 +9,7 @@ import 'package:sabidos2app/presentation/dialogs/create_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/edit_flashcard_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/start_game_dialog.dart';
 import 'package:sabidos2app/data/datasources/points_service.dart';
+import 'package:sabidos2app/presentation/controllers/collection_controller.dart';
 
 class FlashcardsPage extends StatefulWidget {
   const FlashcardsPage({super.key});
@@ -19,57 +21,17 @@ class FlashcardsPage extends StatefulWidget {
 class _FlashcardsPageState extends State<FlashcardsPage> {
   final ApiFlashcardsRepository _repository = ApiFlashcardsRepository();
 
-  List<FlashcardCollection> _collections = [];
-  bool _loading = true;
-  String _error = '';
-
   @override
   void initState() {
     super.initState();
-    _loadCollections();
+    // Dispara o carregamento inicial em background
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CollectionController>().loadCollections();
+    });
   }
 
   Future<void> _loadCollections() async {
-    if (!mounted) return;
-
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
-
-    try {
-      final data = await _repository.getCollections();
-
-      if (!mounted) return;
-      setState(() {
-        _collections = data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      final errorMessage = 'Erro ao carregar coleções';
-
-      setState(() {
-        _error = errorMessage;
-        _loading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'Tentar de novo',
-            textColor: Colors.white,
-            onPressed: _loadCollections,
-          ),
-        ),
-      );
-
-      debugPrint('Erro ao carregar coleções: $e');
-    }
+    await context.read<CollectionController>().loadCollections();
   }
 
   void _showSnack(String message) {
@@ -126,9 +88,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
       _showSnack('Coleção criada com sucesso!');
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'ERRO: $e';
-      });
+      _showSnack('Erro ao criar coleção: $e');
     }
   }
 
@@ -269,6 +229,11 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final collectionController = context.watch<CollectionController>();
+    final collections = collectionController.collections;
+    final isLoading = collectionController.isLoading;
+    final error = collectionController.error;
+
     return Scaffold(
       backgroundColor: const Color(0xFF171621),
       appBar: AppBar(
@@ -298,7 +263,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
             children: [
               _buildTopPanel(),
               const SizedBox(height: 16),
-              _buildCollectionsPanel(),
+              _buildCollectionsPanel(collections, isLoading, error),
             ],
           ),
         ),
@@ -345,7 +310,7 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
     );
   }
 
-  Widget _buildCollectionsPanel() {
+  Widget _buildCollectionsPanel(List<FlashcardCollection> collections, bool isLoading, String error) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -366,12 +331,12 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
             children: [
               const Expanded(child: _SectionHeader(title: 'Minhas Coleções')),
               Text(
-                '${_collections.length} coleção(ões)',
+                '${collections.length} coleção(ões)',
                 style: const TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ],
           ),
-          if (_error.isNotEmpty) ...[
+          if (error.isNotEmpty) ...[
             const SizedBox(height: 14),
             Container(
               width: double.infinity,
@@ -382,20 +347,20 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
                 border: Border.all(color: Colors.redAccent),
               ),
               child: Text(
-                _error,
+                error,
                 style: const TextStyle(color: Colors.redAccent),
               ),
             ),
           ],
           const SizedBox(height: 14),
-          if (_loading)
+          if (isLoading && collections.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
               child: Center(
                 child: CircularProgressIndicator(color: Color(0xFFFBCB4E)),
               ),
             )
-          else if (_collections.isEmpty)
+          else if (collections.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 28),
               child: Column(
@@ -418,12 +383,12 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
             )
           else
             ListView.separated(
-              itemCount: _collections.length,
+              itemCount: collections.length,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (_, index) {
-                final collection = _collections[index];
+                final collection = collections[index];
 
                 return Container(
                   decoration: BoxDecoration(

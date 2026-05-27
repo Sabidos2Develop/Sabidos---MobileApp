@@ -35,4 +35,22 @@ class Resumo {
       "createdAt": createdAt,
     };
   }
+
+  Resumo copyWith({
+    String? id,
+    String? titulo,
+    String? descricao,
+    String? data,
+    String? userId,
+    String? createdAt,
+  }) {
+    return Resumo(
+      id: id ?? this.id,
+      titulo: titulo ?? this.titulo,
+      descricao: descricao ?? this.descricao,
+      data: data ?? this.data,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

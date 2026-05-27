@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../../domain/models/agenda_event_model.dart';
 import '../core/api_client.dart';
+import '../datasources/points_service.dart';
 
 class AgendaRepository {
   Future<List<AgendaEventModel>> getEvents() async {
@@ -15,12 +17,20 @@ class AgendaRepository {
     }
   }
 
-  Future<void> addEvent(String title, DateTime date) async {
+  Future<void> addEvent(String title, DateTime date, {BuildContext? context}) async {
     try {
       await apiClient.post('/Agenda', data: {
         'title': title,
         'date': date.toIso8601String(),
       });
+
+      // NOTIFICA O SISTEMA DE PONTOS/CONQUISTAS
+      await PointsService().earnPoints(
+        action: "EventoCriado", 
+        data: {}, 
+        context: context
+      );
+
     } on DioException catch (e) {
       print('ERRO DA API (Status ${e.response?.statusCode}): ${e.response?.data}');
       throw Exception('Falha ao adicionar evento: ${e.response?.data}');

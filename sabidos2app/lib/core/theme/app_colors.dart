@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   final Color background;
-  final Color card;
-  final Color cardLight;
+  final Color boxBackground;
+  final Color boxBorder;
   final Color primary;
   final Color border;
   final Color text;
@@ -25,8 +25,8 @@ class AppColors extends ThemeExtension<AppColors> {
 
   const AppColors({
     required this.background,
-    required this.card,
-    required this.cardLight,
+    required this.boxBackground,
+    required this.boxBorder,
     required this.primary,
     required this.border,
     required this.text,
@@ -45,8 +45,8 @@ class AppColors extends ThemeExtension<AppColors> {
   @override
   AppColors copyWith({
     Color? background,
-    Color? card,
-    Color? cardLight,
+    Color? boxBackground,
+    Color? boxBorder,
     Color? primary,
     Color? border,
     Color? text,
@@ -63,8 +63,8 @@ class AppColors extends ThemeExtension<AppColors> {
   }) {
     return AppColors(
       background: background ?? this.background,
-      card: card ?? this.card,
-      cardLight: cardLight ?? this.cardLight,
+      boxBackground: boxBackground ?? this.boxBackground,
+      boxBorder: boxBorder ?? this.boxBorder,
       primary: primary ?? this.primary,
       border: border ?? this.border,
       text: text ?? this.text,
@@ -87,8 +87,8 @@ class AppColors extends ThemeExtension<AppColors> {
 
     return AppColors(
       background: Color.lerp(background, other.background, t)!,
-      card: Color.lerp(card, other.card, t)!,
-      cardLight: Color.lerp(cardLight, other.cardLight, t)!,
+      boxBackground: Color.lerp(boxBackground, other.boxBackground, t)!,
+      boxBorder: Color.lerp(boxBorder, other.boxBorder, t)!,
       primary: Color.lerp(primary, other.primary, t)!,
       border: Color.lerp(border, other.border, t)!,
       text: Color.lerp(text, other.text, t)!,

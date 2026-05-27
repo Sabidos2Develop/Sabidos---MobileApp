@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:sabidos2app/data/core/models/achievement.dart';
-import 'package:sabidos2app/data/core/models/user_stats.dart';
 import 'package:sabidos2app/data/core/models/achievement_catalog.dart';
 import 'package:sabidos2app/presentation/pages/widgets/achievement_card.dart';
 import 'package:sabidos2app/core/theme/app_colors.dart';
+import 'package:sabidos2app/core/theme/theme_extensions.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
 import 'package:sabidos2app/data/datasources/gamefication_service.dart';
 
@@ -124,7 +123,7 @@ class _PerfilPageState extends State<PerfilPage> {
               padding: const EdgeInsets.all(1.2),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).extension<AppColors>()!.card,
+                  color: Theme.of(context).extension<AppColors>()!.boxBackground,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Column(

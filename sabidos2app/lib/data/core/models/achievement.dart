@@ -8,6 +8,7 @@ class Achievement {
   final int goal;
   final int progress;
   final bool isUnlocked;
+  final int xpReward;
 
   const Achievement({
     required this.id,
@@ -17,6 +18,7 @@ class Achievement {
     required this.goal,
     required this.progress,
     required this.isUnlocked,
+    required this.xpReward,
   });
 
   double get progressValue {
@@ -28,6 +30,7 @@ class Achievement {
   Achievement copyWith({
     int? progress,
     bool? isUnlocked,
+    int? xpReward,
   }) {
     return Achievement(
       id: id,
@@ -37,6 +40,7 @@ class Achievement {
       goal: goal,
       progress: progress ?? this.progress,
       isUnlocked: isUnlocked ?? this.isUnlocked,
+      xpReward: xpReward ?? this.xpReward,
     );
   }
-}
+  }
