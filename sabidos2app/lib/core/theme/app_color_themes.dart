@@ -4,8 +4,8 @@ import './app_colors.dart';
 class AppColorThemes {
   static const dark = AppColors(
     background: Color(0xFF151522),
-    card: Color(0xFF2B2735),
-    cardLight: Color(0xFF3F3C4E),
+    boxBackground: Color(0xFF2B2735),
+    boxBorder: Color(0xFF3F3C4E),
     primary: Color(0xFF3B2868),
     border: Color(0xFF7763B3),
     text: Color(0xFFEAEAEA),
@@ -19,7 +19,7 @@ class AppColorThemes {
     badgeGold: Color(0xFF9E813A),
     // New gradients from source
     sabidosGradient: LinearGradient(
-      colors: [Color(0xFFD3353E), Color(0xFF1499E2)],
+      colors: [Color(0xFFD3353E),Color(0xFFA45981), Color(0xFF1499E2)],
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     ),
@@ -45,8 +45,8 @@ class AppColorThemes {
 
   static const light = AppColors(
     background: Color(0xFFFFFFFF),
-    card: Color(0xFFF5F5F5),
-    cardLight: Color(0xFFE0E0E0),
+    boxBackground: Color(0xFFF5F5F5),
+    boxBorder: Color(0xFFE0E0E0),
     primary: Color(0xFF6750A4),
     border: Color(0xFFCCCCCC),
     text: Color(0xFF1C1B1F),

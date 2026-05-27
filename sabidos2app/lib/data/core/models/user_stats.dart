@@ -5,6 +5,8 @@ class UserStats {
   final int eventosCriados;
   final int diasSequencia;
   final int totalAcoes;
+  final int totalXp;
+  final int level;
 
   const UserStats({
     required this.resumosCriados,
@@ -13,6 +15,8 @@ class UserStats {
     required this.eventosCriados,
     required this.diasSequencia,
     required this.totalAcoes,
+    required this.totalXp,
+    required this.level,
   });
 
   factory UserStats.empty() {
@@ -23,6 +27,8 @@ class UserStats {
       eventosCriados: 0,
       diasSequencia: 0,
       totalAcoes: 0,
+      totalXp: 0,
+      level: 1,
     );
   }
 
@@ -36,6 +42,8 @@ class UserStats {
       eventosCriados: (map['eventosCriados'] ?? 0) as int,
       diasSequencia: (map['diasSequencia'] ?? 0) as int,
       totalAcoes: (map['totalAcoes'] ?? 0) as int,
+      totalXp: (map['totalXp'] ?? 0) as int,
+      level: (map['level'] ?? 1) as int,
     );
   }
 }

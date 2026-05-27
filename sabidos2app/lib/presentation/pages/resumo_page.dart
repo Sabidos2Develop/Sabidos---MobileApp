@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:sabidos2app/domain/models/resumo.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
 
 class ResumoPage extends StatefulWidget {
   const ResumoPage({super.key});
@@ -15,7 +17,6 @@ class ResumoPage extends StatefulWidget {
 
 class _ResumoPageState extends State<ResumoPage> {
   final _auth = FirebaseAuth.instance;
-  final _db = FirebaseFirestore.instance;
 
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
@@ -41,9 +42,16 @@ class _ResumoPageState extends State<ResumoPage> {
 
     configurarVoz();
     _requestMicrophonePermission();
+
+    // Começa a ouvir as mudanças nos resumos de forma global
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = _auth.currentUser?.uid ?? "";
+      context.read<ResumoController>().listenToResumos(userId);
+    });
   }
 
   Future<void> _requestMicrophonePermission() async {
+// ... resto do código permanece igual
     final status = await Permission.microphone.request();
 
     if (status.isPermanentlyDenied) {
@@ -66,46 +74,33 @@ class _ResumoPageState extends State<ResumoPage> {
 
   String get userId => _auth.currentUser?.uid ?? "";
 
-  Stream<List<Resumo>> getResumos() {
-    return _db
-        .collection('resumos')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
-              .map((doc) => Resumo.fromMap(doc.id, doc.data()))
-              .toList();
-
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-          return list;
-        });
-  }
-
   Future<void> salvarResumo() async {
     if (_tituloController.text.isEmpty || _descricaoController.text.isEmpty) {
       return;
     }
 
-    await _db.collection('resumos').add({
-      "userId": userId,
-      "titulo": _tituloController.text,
-      "descricao": _descricaoController.text,
-      "data": formatarData(DateTime.now()),
-      "createdAt": DateTime.now().toIso8601String(),
-    });
+    final resumo = Resumo(
+      id: '', // Firestore vai gerar o ID
+      titulo: _tituloController.text,
+      descricao: _descricaoController.text,
+      data: formatarData(DateTime.now()),
+      userId: userId,
+      createdAt: DateTime.now().toIso8601String(),
+    );
 
+    await context.read<ResumoController>().addResumo(resumo, context: context);
     limparForm();
   }
 
   Future<void> editarResumo() async {
     if (editingResumo == null) return;
 
-    await _db.collection('resumos').doc(editingResumo!.id).update({
-      "titulo": _tituloController.text,
-      "descricao": _descricaoController.text,
-      "data": formatarData(DateTime.now()),
-    });
+    final updated = editingResumo!.copyWith(
+      titulo: _tituloController.text,
+      descricao: _descricaoController.text,
+    );
+
+    await context.read<ResumoController>().updateResumo(updated);
 
     setState(() {
       editingResumo = null;
@@ -115,10 +110,11 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   Future<void> deletarResumo(String id) async {
-    await _db.collection('resumos').doc(id).delete();
+    await context.read<ResumoController>().deleteResumo(id);
   }
 
   void limparForm() {
+// ... resto do código permanece igual
     _tituloController.clear();
     _descricaoController.clear();
   }
@@ -573,6 +569,10 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   Widget _buildSidebar({bool isMobile = false}) {
+    final resumoController = context.watch<ResumoController>();
+    final resumos = resumoController.resumos;
+    final isLoading = resumoController.isLoading;
+
     return Container(
       height: isMobile ? 400 : double.infinity,
       padding: const EdgeInsets.all(20),
@@ -602,73 +602,62 @@ class _ResumoPageState extends State<ResumoPage> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: StreamBuilder<List<Resumo>>(
-              stream: getResumos(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
-                  );
-                }
-
-                final resumos = snapshot.data!;
-
-                if (resumos.isEmpty) {
-                  return const Center(
+            child: isLoading && resumos.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
+                )
+              : resumos.isEmpty
+                ? const Center(
                     child: Text(
                       "Nenhum resumo",
                       style: TextStyle(color: Colors.grey),
                     ),
-                  );
-                }
+                  )
+                : ListView.builder(
+                    itemCount: resumos.length,
+                    itemBuilder: (_, i) {
+                      final r = resumos[i];
 
-                return ListView.builder(
-                  itemCount: resumos.length,
-                  itemBuilder: (_, i) {
-                    final r = resumos[i];
-
-                    return GestureDetector(
-                      onTap: () => abrirModal(r),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF423E51),
-                          borderRadius: BorderRadius.circular(12),
-                          border: const Border(
-                            left: BorderSide(
-                              color: Colors.pinkAccent,
-                              width: 4,
+                      return GestureDetector(
+                        onTap: () => abrirModal(r),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF423E51),
+                            borderRadius: BorderRadius.circular(12),
+                            border: const Border(
+                              left: BorderSide(
+                                color: Colors.pinkAccent,
+                                width: 4,
+                              ),
                             ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              r.titulo,
-                              style: const TextStyle(
-                                color: Color(0xFFFBCA4E),
-                                fontWeight: FontWeight.bold,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r.titulo,
+                                style: const TextStyle(
+                                  color: Color(0xFFFBCA4E),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              r.descricao,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ],
+                              const SizedBox(height: 6),
+                              Text(
+                                r.descricao,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

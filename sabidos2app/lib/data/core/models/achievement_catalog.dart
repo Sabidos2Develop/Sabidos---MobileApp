@@ -3,7 +3,7 @@ import './achievement.dart';
 import './user_stats.dart';
 
 class AchievementCatalog {
-  static List<Achievement> buildFromStats(UserStats stats) {
+  static List<Achievement> buildFromStats(UserStats stats, List<String> unlockedIds) {
     final achievements = <Achievement>[
       Achievement(
         id: 'primeiro_resumo',
@@ -12,7 +12,8 @@ class AchievementCatalog {
         icon: Icons.article_rounded,
         goal: 1,
         progress: stats.resumosCriados,
-        isUnlocked: stats.resumosCriados >= 1,
+        isUnlocked: unlockedIds.contains('primeiro_resumo') || stats.resumosCriados >= 1,
+        xpReward: 50,
       ),
       Achievement(
         id: 'foco_inicial',
@@ -21,7 +22,8 @@ class AchievementCatalog {
         icon: Icons.timer_rounded,
         goal: 5,
         progress: stats.pomodorosConcluidos,
-        isUnlocked: stats.pomodorosConcluidos >= 5,
+        isUnlocked: unlockedIds.contains('foco_inicial') || stats.pomodorosConcluidos >= 5,
+        xpReward: 100,
       ),
       Achievement(
         id: 'mestre_flashcards',
@@ -30,7 +32,8 @@ class AchievementCatalog {
         icon: Icons.style_rounded,
         goal: 20,
         progress: stats.flashcardsCriados,
-        isUnlocked: stats.flashcardsCriados >= 20,
+        isUnlocked: unlockedIds.contains('mestre_flashcards') || stats.flashcardsCriados >= 20,
+        xpReward: 200,
       ),
       Achievement(
         id: 'organizado',
@@ -39,7 +42,8 @@ class AchievementCatalog {
         icon: Icons.event_note_rounded,
         goal: 10,
         progress: stats.eventosCriados,
-        isUnlocked: stats.eventosCriados >= 10,
+        isUnlocked: unlockedIds.contains('organizado') || stats.eventosCriados >= 10,
+        xpReward: 150,
       ),
       Achievement(
         id: 'sequencia_3',
@@ -48,7 +52,8 @@ class AchievementCatalog {
         icon: Icons.local_fire_department_rounded,
         goal: 3,
         progress: stats.diasSequencia,
-        isUnlocked: stats.diasSequencia >= 3,
+        isUnlocked: unlockedIds.contains('sequencia_3') || stats.diasSequencia >= 3,
+        xpReward: 100,
       ),
       Achievement(
         id: 'veterano',
@@ -57,7 +62,8 @@ class AchievementCatalog {
         icon: Icons.emoji_events_rounded,
         goal: 100,
         progress: stats.totalAcoes,
-        isUnlocked: stats.totalAcoes >= 100,
+        isUnlocked: unlockedIds.contains('veterano') || stats.totalAcoes >= 100,
+        xpReward: 500,
       ),
     ];
 

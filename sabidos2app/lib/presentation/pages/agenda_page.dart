@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sabidos2app/data/repositories/agenda_repository.dart';
 import 'package:sabidos2app/domain/models/agenda_event_model.dart';
 import 'package:sabidos2app/presentation/dialogs/create_event_dialog.dart';
 import 'package:sabidos2app/presentation/dialogs/edit_event_dialog.dart';
+import 'package:sabidos2app/presentation/controllers/agenda_controller.dart';
 
 class AgendaPage extends StatefulWidget {
   const AgendaPage({super.key});
@@ -18,84 +20,30 @@ class _AgendaPageState extends State<AgendaPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // Mapa para armazenar os compromissos (Agrupados por dia)
-  Map<DateTime, List<AgendaEventModel>> events = {};
-  bool _isLoading = true;
-
-  bool _isFirstLoad = true;
-
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    // Otimizao: Pequeno atraso para no travar a transio de tela
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _loadEvents();
+    
+    // Dispara o carregamento inicial em background se a lista estiver vazia
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = context.read<AgendaController>();
+      if (controller.events.isEmpty) {
+        controller.loadEvents();
+      }
     });
   }
 
   Future<void> _loadEvents() async {
-  if (!mounted) return;
-
-  if (!_isFirstLoad && _isLoading) return;
-
-  setState(() => _isLoading = true);
-
-  try {
-    final data = await _repository.getEvents();
-
-    if (!mounted) return;
-
-    final Map<DateTime, List<AgendaEventModel>> newEvents = {};
-
-    for (var event in data) {
-      final eventDate = DateTime(
-        event.date.year,
-        event.date.month,
-        event.date.day,
-      );
-
-      if (newEvents[eventDate] == null) {
-        newEvents[eventDate] = [];
-      }
-      newEvents[eventDate]!.add(event);
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      events = newEvents;
-      _isLoading = false;
-      _isFirstLoad = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
-
-    final errorMessage = 'Erro ao carregar eventos';
-    
-    setState(() {
-      _isLoading = false;
-      _isFirstLoad = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(errorMessage),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Tentar',
-          onPressed: _loadEvents,
-        ),
-      ),
-    );
-
-    debugPrint('Erro ao carregar eventos: $e');
+    await context.read<AgendaController>().loadEvents();
   }
-}
 
-  List<AgendaEventModel> _getEventsForDay(DateTime day) {
-    return events[DateTime(day.year, day.month, day.day)] ?? [];
+  List<AgendaEventModel> _getEventsForDay(DateTime day, List<AgendaEventModel> allEvents) {
+    return allEvents.where((event) {
+      return event.date.year == day.year &&
+             event.date.month == day.month &&
+             event.date.day == day.day;
+    }).toList();
   }
 
   Future<T?> _showSheet<T>(Widget child) {
@@ -113,6 +61,22 @@ class _AgendaPageState extends State<AgendaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final agendaController = context.watch<AgendaController>();
+    final allEvents = agendaController.events;
+    final isLoading = agendaController.isLoading;
+
+    // Converte a lista plana do controller em um mapa para o TableCalendar
+    final Map<DateTime, List<AgendaEventModel>> eventMap = {};
+    for (var event in allEvents) {
+      final date = DateTime(event.date.year, event.date.month, event.date.day);
+      if (eventMap[date] == null) eventMap[date] = [];
+      eventMap[date]!.add(event);
+    }
+
+    List<AgendaEventModel> getEventsForDay(DateTime day) {
+      return eventMap[DateTime(day.year, day.month, day.day)] ?? [];
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF171621),
       appBar: AppBar(
@@ -129,11 +93,11 @@ class _AgendaPageState extends State<AgendaPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            onPressed: _loadEvents,
+            onPressed: () => context.read<AgendaController>().loadEvents(),
           ),
         ],
       ),
-      body: _isLoading
+      body: isLoading && allEvents.isEmpty
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFFBCB4E)),
             )
@@ -174,7 +138,8 @@ class _AgendaPageState extends State<AgendaPage> {
                     onPageChanged: (focusedDay) {
                       _focusedDay = focusedDay;
                     },
-                    eventLoader: _getEventsForDay,
+                    eventLoader: getEventsForDay,
+// ... resto do código permanece igual
 
                     calendarStyle: const CalendarStyle(
                       defaultTextStyle: TextStyle(
@@ -250,7 +215,7 @@ class _AgendaPageState extends State<AgendaPage> {
                     ),
                   ),
                 ),
-                Expanded(child: _buildEventList()),
+                Expanded(child: _buildEventList(allEvents)),
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -261,8 +226,8 @@ class _AgendaPageState extends State<AgendaPage> {
     );
   }
 
-  Widget _buildEventList() {
-    final dayEvents = _getEventsForDay(_selectedDay!);
+  Widget _buildEventList(List<AgendaEventModel> allEvents) {
+    final dayEvents = _getEventsForDay(_selectedDay!, allEvents);
 
     if (dayEvents.isEmpty) {
       return Center(
@@ -471,8 +436,12 @@ class _AgendaPageState extends State<AgendaPage> {
     final result = await _showSheet<String>(const CreateEventDialog());
 
     if (result != null && result.isNotEmpty) {
-      await _repository.addEvent(result, _selectedDay!);
-      _loadEvents();
+      if (!mounted) return;
+      await context.read<AgendaController>().addEvent(
+        result, 
+        _selectedDay!, 
+        context: context
+      );
     }
   }
 }

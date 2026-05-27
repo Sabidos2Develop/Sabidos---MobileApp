@@ -18,7 +18,7 @@ class DashboardHeader extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Theme.of(context).extension<AppColors>()!.card,
+              color: Theme.of(context).extension<AppColors>()!.boxBackground,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
