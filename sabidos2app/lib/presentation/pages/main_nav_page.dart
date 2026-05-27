@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sabidos2app/presentation/pages/teste2.dart';
+import 'package:sabidos2app/presentation/pages/achievements.dart';
 import './widgets/b_navbar.dart';
 import 'package:sabidos2app/presentation/pages/flashcards_page.dart';
 import 'package:sabidos2app/presentation/pages/dashboard_page.dart';

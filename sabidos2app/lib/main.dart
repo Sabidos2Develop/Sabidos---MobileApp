@@ -10,9 +10,7 @@ import 'package:sabidos2app/core/theme/app_theme.dart';
 import 'package:sabidos2app/core/theme/theme_storage.dart';
 import 'package:sabidos2app/presentation/controllers/resumo_controller.dart';
 import 'package:sabidos2app/presentation/controllers/authController.dart';
-import 'package:sabidos2app/presentation/pages/login_page.dart';
-import 'package:sabidos2app/presentation/pages/teste2.dart';
-import 'package:sabidos2app/presentation/pages/perfil_page.dart';
+import 'package:sabidos2app/presentation/pages/achievements.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

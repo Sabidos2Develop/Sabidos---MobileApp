@@ -34,6 +34,7 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   Future<void> _loadAchievements() async {
+    if (!mounted) return;
     setState(() {
       isLoadingAchievements = true;
     });
@@ -42,6 +43,7 @@ class _PerfilPageState extends State<PerfilPage> {
 
     final data = AchievementCatalog.buildFromStats(stats);
 
+    if (!mounted) return;
     setState(() {
       achievements = data;
       isLoadingAchievements = false;
@@ -289,14 +291,9 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 210,
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-        image: const DecorationImage(
-          image: AssetImage(''),
-          fit: BoxFit.cover,
-          onError: null,
-        ),
-        color: const Color(0xFF211D30),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        color: Color(0xFF211D30),
       ),
       child: Container(
         decoration: BoxDecoration(
