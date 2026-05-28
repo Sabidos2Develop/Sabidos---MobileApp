@@ -6,9 +6,9 @@ class ApiClient {
   late final Dio dio;
 
   //Abaixo tem o IP do emulador Android para acessar o backend local. Se for usar em dispositivo físico, mude para o IP da máquina onde o backend está rodando.
-  final String baseUrl = "http://10.0.2.2:5203/api";
+  //final String baseUrl = "http://10.0.2.2:5203/api";
   //final String baseUrl = "http://192.168.15.5:5203/api";
-  //final String baseUrl = "http://192.168.31.42:5203/api";
+  final String baseUrl = "http://192.168.31.42:5203/api";
 
   ApiClient() {
     dio = Dio(

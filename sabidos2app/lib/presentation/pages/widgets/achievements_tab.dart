@@ -121,7 +121,7 @@ class _AchievementsTabState extends State<AchievementsTab> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text("${gami.totalXp}xp", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: context.colors.text)),
+                                    Text("${gami.totalXp}xp", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: context.colors.background)),
                                     Text("${gami.xpNextLevelThreshold}xp", style: TextStyle(color: context.colors.text.withOpacity(0.5), fontSize: 13)),
                                   ],
                                 ),
@@ -133,8 +133,8 @@ class _AchievementsTabState extends State<AchievementsTab> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Nível ${gami.userLevel}", style: TextStyle(color: context.colors.grayText, fontSize: 16, fontWeight: FontWeight.w600)),
-                            Text("Nível ${gami.userLevel + 1}", style: TextStyle(color: context.colors.grayText, fontSize: 16)),
+                            Text("Nível ${gami.userLevel}", style: TextStyle(color: context.colors.grayText, fontSize: 12, fontWeight: FontWeight.w500)),
+                            Text("Nível ${gami.userLevel + 1}", style: TextStyle(color: context.colors.grayText, fontSize: 12)),
                           ],
                         ),
                       ],
@@ -205,20 +205,31 @@ class _AchievementsTabState extends State<AchievementsTab> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // LISTA DE CONQUISTAS DINÂMICA (2 por linha)
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 0.85, 
-                    children: achievements
-                        .map((a) => AchievementCard(achievement: a))
-                        .toList(),
+                  // Cálculo dinâmico do Aspect Ratio para evitar overflow em telas menores
+                  Builder(
+                    builder: (context) {
+                      final double screenWidth = MediaQuery.of(context).size.width;
+                      // Em telas pequenas (ex: iPhone SE), o card precisa de mais altura (ratio menor)
+                      // Em telas grandes, ele pode ser mais quadrado (ratio maior)
+                      final double dynamicAspectRatio = screenWidth < 380 ? 0.75 : 0.82;
+
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 14,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: dynamicAspectRatio, 
+                        children: achievements
+                            .map((a) => AchievementCard(achievement: a))
+                            .toList(),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
+
                 ],
               ),
             ),

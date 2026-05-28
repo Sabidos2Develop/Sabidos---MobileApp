@@ -72,17 +72,23 @@ class AchievementCard extends StatelessWidget {
             achievement.title,
             style: TextStyle(
               color: colors.text,
-              fontSize: 16,
+              fontSize: 15, // Reduzi levemente para caber melhor
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
-          Text(
-            achievement.description,
-            style: TextStyle(
-              color: colors.text.withOpacity(0.7),
-              fontSize: 13,
-              height: 1.5,
+          Expanded( // Faz a descrição ocupar o espaço disponível
+            child: Text(
+              achievement.description,
+              style: TextStyle(
+                color: colors.text.withOpacity(0.7),
+                fontSize: 12, // Reduzi levemente
+                height: 1.3,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(height: 14),

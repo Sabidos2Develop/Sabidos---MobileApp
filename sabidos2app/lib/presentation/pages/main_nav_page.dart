@@ -9,6 +9,7 @@ import '../../core/theme/theme_controller.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:sabidos2app/presentation/pages/profile_page.dart';
+import '../controllers/notification_controller.dart';
 
 import '../widgets/success_overlay.dart';
 import '../widgets/level_up_overlay.dart';
@@ -79,8 +80,25 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
         ),
         SuccessOverlay(onNavigate: _onTabChange),
-        const LevelUpOverlay(),
         MissionCompleteOverlay(onNavigate: _onTabChange),
+        
+        // LEVEL UP OVERLAY (Prioridade máxima, mas espera os toasts sumirem)
+        Selector<NotificationController, (LevelUpNotification?, bool, bool)>(
+          selector: (_, ctrl) => (ctrl.currentLevelUp, ctrl.currentNotification != null, ctrl.currentMission != null),
+          builder: (context, data, child) {
+            final levelData = data.$1;
+            final isShowingToast = data.$2 || data.$3;
+
+            // Se houver level up, mas um toast estiver na tela, esperamos.
+            if (levelData == null || isShowingToast) return const SizedBox.shrink();
+
+            return LevelUpOverlay(
+              key: ValueKey('level_up_${levelData.newLevel}'),
+              notification: levelData,
+              onNavigate: _onTabChange,
+            );
+          },
+        ),
       ],
     );
   }
