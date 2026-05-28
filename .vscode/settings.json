@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/code/Sabidos---MobileApp/sabidos2app/windows/flutter"
+    "cmake.sourceDirectory": "C:/code/Sabidos---MobileApp/sabidos2app/windows/flutter",
+    "cmake.ignoreCMakeListsMissing": true
 }

@@ -51,7 +51,7 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   Future<void> _requestMicrophonePermission() async {
-// ... resto do código permanece igual
+    // ... resto do código permanece igual
     final status = await Permission.microphone.request();
 
     if (status.isPermanentlyDenied) {
@@ -114,7 +114,7 @@ class _ResumoPageState extends State<ResumoPage> {
   }
 
   void limparForm() {
-// ... resto do código permanece igual
+    // ... resto do código permanece igual
     _tituloController.clear();
     _descricaoController.clear();
   }
@@ -310,6 +310,7 @@ class _ResumoPageState extends State<ResumoPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: const Color(0xFF292535),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -318,111 +319,118 @@ class _ResumoPageState extends State<ResumoPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    r.titulo,
-                    style: const TextStyle(
-                      color: Color(0xFFFBCA4E),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A2E),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF423E51)),
-                    ),
-                    child: Text(
-                      r.descricao,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: getFontSize(),
-                        height: 1.5,
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: MediaQuery.of(context).padding.bottom + 24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          alternarFonte();
-                          Navigator.pop(context);
-                          abrirModal(r);
-                        },
-                        icon: const Icon(Icons.format_size),
-                        label: const Text("Fonte"),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
+                    const SizedBox(height: 24),
+                    Text(
+                      r.titulo,
+                      style: const TextStyle(
+                        color: Color(0xFFFBCA4E),
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A2E),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF423E51)),
+                      ),
+                      child: Text(
+                        r.descricao,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: getFontSize(),
+                          height: 1.5,
                         ),
                       ),
-                      Row(
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                editingResumo = r;
-                                _tituloController.text = r.titulo;
-                                _descricaoController.text = r.descricao;
-                              });
-
-                              Navigator.pop(context);
-                            },
-                            child: const Text(
-                              "Editar",
-                              style: TextStyle(color: Colors.blueAccent),
-                            ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            alternarFonte();
+                            Navigator.pop(context);
+                            abrirModal(r);
+                          },
+                          icon: const Icon(Icons.format_size),
+                          label: const Text("Fonte"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white70,
                           ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: () async {
-                              toggleLeitura(r.descricao);
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  editingResumo = r;
+                                  _tituloController.text = r.titulo;
+                                  _descricaoController.text = r.descricao;
+                                });
 
-                              await Future.delayed(
-                                const Duration(milliseconds: 100),
-                              );
+                                Navigator.pop(context);
+                              },
+                              child: const Text(
+                                "Editar",
+                                style: TextStyle(color: Colors.blueAccent),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () async {
+                                toggleLeitura(r.descricao);
 
-                              setModalState(() {});
-                            },
-                            child: Text(isSpeaking ? "Parar" : "Ouvir"),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              deletarResumo(r.id);
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
+                                await Future.delayed(
+                                  const Duration(milliseconds: 100),
+                                );
+
+                                setModalState(() {});
+                              },
+                              child: Text(isSpeaking ? "Parar" : "Ouvir"),
                             ),
-                            child: const Text(
-                              "Excluir",
-                              style: TextStyle(color: Colors.white),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                deletarResumo(r.id);
+                                Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                              ),
+                              child: const Text(
+                                "Excluir",
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -603,10 +611,10 @@ class _ResumoPageState extends State<ResumoPage> {
           const SizedBox(height: 16),
           Expanded(
             child: isLoading && resumos.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
-                )
-              : resumos.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFFBCA4E)),
+                  )
+                : resumos.isEmpty
                 ? const Center(
                     child: Text(
                       "Nenhum resumo",

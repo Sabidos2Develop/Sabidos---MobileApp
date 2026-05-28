@@ -60,7 +60,10 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         side: BorderSide(color: Color(0xFF423E51)),
       ),
-      builder: (context) => child,
+      builder: (context) => SafeArea(
+        top: false,
+        child: child,
+      ),
     );
   }
 
@@ -94,74 +97,81 @@ class _FlashcardsPageState extends State<FlashcardsPage> {
 
   Future<void> _deleteCollection(String collectionId) async {
     final confirm = await _showSheet<bool>(
-      Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Icon(
-              Icons.delete_sweep_rounded,
-              color: Colors.redAccent,
-              size: 50,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Excluir coleção?',
-              style: TextStyle(
-                color: Color(0xFFFBCB4E),
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Isso removerá permanentemente a coleção e todos os seus cards.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.grey),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cancelar'),
-                  ),
+      SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              const SizedBox(height: 24),
+              const Icon(
+                Icons.delete_sweep_rounded,
+                color: Colors.redAccent,
+                size: 50,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Excluir coleção?',
+                style: TextStyle(
+                  color: Color(0xFFFBCB4E),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Isso removerá permanentemente a coleção e todos os seus cards.',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Cancelar'),
                     ),
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text(
-                      'Excluir',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text(
+                        'Excluir',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -594,7 +604,10 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         side: BorderSide(color: Color(0xFF423E51)),
       ),
-      builder: (context) => child,
+      builder: (context) => SafeArea(
+        top: false,
+        child: child,
+      ),
     );
   }
 
@@ -610,7 +623,6 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
       widget.collectionId,
       FlashcardModel(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
-        titulo: result.titulo,
         frente: result.frente,
         verso: result.verso,
         data: _shortDate(DateTime.now()),
@@ -637,7 +649,6 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
     await widget.repository.updateCardInCollection(
       widget.collectionId,
       card.copyWith(
-        titulo: result.titulo,
         frente: result.frente,
         verso: result.verso,
         data: _shortDate(DateTime.now()),
@@ -654,74 +665,81 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
 
   Future<void> _deleteCard(String cardId) async {
     final confirm = await _showSheet<bool>(
-      Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Icon(
-              Icons.delete_sweep_rounded,
-              color: Colors.redAccent,
-              size: 50,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Excluir card?',
-              style: TextStyle(
-                color: Color(0xFFFBCB4E),
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Deseja realmente remover este flashcard?',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.grey),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Não'),
-                  ),
+      SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              const SizedBox(height: 24),
+              const Icon(
+                Icons.delete_sweep_rounded,
+                color: Colors.redAccent,
+                size: 50,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Excluir card?',
+                style: TextStyle(
+                  color: Color(0xFFFBCB4E),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Deseja realmente remover este flashcard?',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Não'),
                     ),
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text(
-                      'Sim, Excluir',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text(
+                        'Sim, Excluir',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -781,7 +799,12 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
           maxChildSize: 0.95,
           builder: (_, scrollController) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: MediaQuery.of(context).padding.bottom + 24,
+              ),
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Column(
@@ -799,7 +822,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      card.titulo,
+                      card.frente,
                       style: const TextStyle(
                         color: Color(0xFFFBCB4E),
                         fontSize: 24,
@@ -1144,7 +1167,7 @@ class _CollectionDetailsViewState extends State<_CollectionDetailsView> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          card.titulo,
+                                          card.frente,
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
@@ -1432,16 +1455,23 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
     final shouldLeave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: const Color(0xFF292535),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         side: BorderSide(color: Color(0xFF423E51)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (sheetContext) => SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Container(
               width: 40,
               height: 5,
@@ -1523,6 +1553,7 @@ ${result.unlockedAchievements.isEmpty ? "Nenhuma" : result.unlockedAchievements.
           ],
         ),
       ),
+    ),
     );
 
     if (shouldLeave == true && mounted) {

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/core/models/user_stats.dart';
 import '../../data/core/models/daily_mission.dart';
@@ -26,6 +27,7 @@ class GamificationController extends ChangeNotifier {
   int _rerollsLeft = 0;
   
   bool _isLoading = false;
+  bool _isInitialized = false; // Flag para ignorar o primeiro carregamento
 
   UserStats get stats => _stats;
   int get userLevel => _userLevel;
@@ -55,11 +57,11 @@ class GamificationController extends ChangeNotifier {
       final int newBase = (profileData['xpCurrentLevelBase'] ?? profileData['XpCurrentLevelBase'] ?? 0) as int;
       final int newNext = (profileData['xpNextLevelThreshold'] ?? profileData['XpNextLevelThreshold'] ?? 100) as int;
 
-      // DETECTA LEVEL UP
-      if (newLevel > _userLevel && _userLevel > 0) {
-        // Cálculo absoluto para bater com a barra linear (XP Total / Meta Próximo Nível)
-        final double oldProgress = _totalXp / _xpNextLevelThreshold;
-        final double newProgress = newTotalXp / newNext;
+      // DETECTA LEVEL UP (Apenas se não for a primeira vez que abrimos o app)
+      if (_isInitialized && newLevel > _userLevel) {
+        // Cálculo RELATIVO para a barra circular resetar (0% -> 100% -> novo 0% -> novo %)
+        final double oldProgress = (_totalXp - _xpCurrentLevelBase) / (_xpNextLevelThreshold - _xpCurrentLevelBase);
+        final double newProgress = (newTotalXp - newBase) / (newNext - newBase);
         
         _notif?.showLevelUp(_userLevel, oldProgress.clamp(0, 1), newLevel, newProgress.clamp(0, 1));
       }
@@ -68,6 +70,7 @@ class GamificationController extends ChangeNotifier {
       _totalXp = newTotalXp;
       _xpCurrentLevelBase = newBase;
       _xpNextLevelThreshold = newNext;
+      _isInitialized = true; // Marcar como carregado
       
       debugPrint('--- PARSED VALUES: Level=$_userLevel, XP=$_totalXp, Next=$_xpNextLevelThreshold ---');
       
@@ -120,38 +123,37 @@ class GamificationController extends ChangeNotifier {
 
   Future<void> claimDailyMission(String missionId) async {
     try {
-      debugPrint('--- INICIANDO CLAIM: $missionId ---');
-      final data = await _service.claimMissionReward(missionId);
-      debugPrint('--- API CLAIM RESPONSE: $data ---');
-      
-      final int newLevel = (data['level'] ?? data['Level'] ?? _userLevel) as int;
-      final int newTotalXp = (data['totalXp'] ?? data['TotalXp'] ?? _totalXp) as int;
-      final int newBase = (data['xpCurrentLevelBase'] ?? data['XpCurrentLevelBase'] ?? _xpCurrentLevelBase) as int;
-      final int newNext = (data['xpNextLevelThreshold'] ?? data['XpNextLevelThreshold'] ?? _xpNextLevelThreshold) as int;
+      // 1. CAPTURA ESTADO ATUAL (SNAPSHOT ANTES DA API)
+      final int oldLevel = _userLevel;
+      final double oldProgress = (_totalXp - _xpCurrentLevelBase) / (_xpNextLevelThreshold - _xpCurrentLevelBase);
 
-      // DETECTA LEVEL UP AO COLETAR MISSÃO
-      if (newLevel > _userLevel) {
-        // Cálculo absoluto para bater com a barra linear (XP Total / Meta Próximo Nível)
-        final double oldProgress = _totalXp / _xpNextLevelThreshold;
-        final double newProgress = newTotalXp / newNext;
+      debugPrint('--- INICIANDO CLAIM API: $missionId ---');
+      final data = await _service.claimMissionReward(missionId);
+      
+      // 2. NOVOS DADOS DEFINITIVOS DA API
+      final int apiNewLevel = (data['level'] ?? data['Level'] ?? _userLevel) as int;
+      final int apiNewTotalXp = (data['totalXp'] ?? data['TotalXp'] ?? _totalXp) as int;
+      final int apiNewBase = (data['xpCurrentLevelBase'] ?? data['XpCurrentLevelBase'] ?? _xpCurrentLevelBase) as int;
+      final int apiNewNext = (data['xpNextLevelThreshold'] ?? data['XpNextLevelThreshold'] ?? _xpNextLevelThreshold) as int;
+
+      // 3. DETECTA LEVEL UP COM DADOS REAIS
+      if (apiNewLevel > oldLevel) {
+        final double newProgress = (apiNewTotalXp - apiNewBase) / (apiNewNext - apiNewBase);
         
-        _notif?.showLevelUp(_userLevel, oldProgress.clamp(0, 1), newLevel, newProgress.clamp(0, 1));
+        debugPrint('--- LEVEL UP DETECTADO (API): Progress $oldProgress -> $newProgress ---');
+        _notif?.showLevelUp(oldLevel, oldProgress.clamp(0, 1), apiNewLevel, newProgress.clamp(0, 1));
       }
 
-      // Atualiza o XP e Nível que mudaram na API
-      _userLevel = newLevel;
-      _totalXp = newTotalXp;
-      _xpCurrentLevelBase = newBase;
-      _xpNextLevelThreshold = newNext;
-
-      debugPrint('--- NOVOS VALORES APÓS CLAIM: XP=$_totalXp, Level=$_userLevel ---');
+      // 4. ATUALIZAÇÃO DO ESTADO GLOBAL
+      _userLevel = apiNewLevel;
+      _totalXp = apiNewTotalXp;
+      _xpCurrentLevelBase = apiNewBase;
+      _xpNextLevelThreshold = apiNewNext;
 
       _rerollsLeft = (data['rerollsLeft'] ?? data['RerollsLeft'] ?? 0) as int;
       final List rawMissions = data['missions'] ?? data['Missions'] ?? [];
-      
       _dailyMissions = rawMissions.map((m) => DailyMission.fromMap(m)).toList();
       
-      debugPrint('--- DISPARANDO NOTIFY LISTENERS ---');
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao coletar recompensa: $e');

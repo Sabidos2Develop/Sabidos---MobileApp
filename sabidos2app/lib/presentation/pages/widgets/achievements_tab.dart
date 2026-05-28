@@ -47,9 +47,9 @@ class _AchievementsTabState extends State<AchievementsTab> {
         final stats = gami.stats;
         final achievements = AchievementCatalog.buildFromStats(stats, gami.unlockedIds);
 
-        // Simplificando o cálculo para ser mais robusto: XP Total / Meta do Próximo Nível
-        double progressFactor = gami.xpNextLevelThreshold > 0 
-            ? gami.totalXp / gami.xpNextLevelThreshold 
+        // Cálculo CORRETO e RELATIVO: (XP Atual - Base do Nível) / (Meta do Nível - Base do Nível)
+        double progressFactor = (gami.xpNextLevelThreshold - gami.xpCurrentLevelBase) > 0 
+            ? (gami.totalXp - gami.xpCurrentLevelBase) / (gami.xpNextLevelThreshold - gami.xpCurrentLevelBase)
             : 0.0;
             
         if (progressFactor < 0) progressFactor = 0;
@@ -103,11 +103,11 @@ class _AchievementsTabState extends State<AchievementsTab> {
 
                                 height: 35,
                                 decoration: BoxDecoration(
-                                  gradient: context.colors.levelGradient,
+                                  color: context.colors.accentBlue,
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: context.colors.accentYellow.withOpacity(0.3),
+                                      color: context.colors.accentBlue.withOpacity(0.3),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     )
@@ -121,8 +121,10 @@ class _AchievementsTabState extends State<AchievementsTab> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text("${gami.totalXp}xp", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: context.colors.text)),
-                                    Text("${gami.xpNextLevelThreshold}xp", style: TextStyle(color: context.colors.text.withOpacity(0.5), fontSize: 13)),
+                                    // Mostra o XP ganho DENTRO do nível atual
+                                    Text("${gami.totalXp - gami.xpCurrentLevelBase}xp", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: context.colors.text)),
+                                    // Mostra o XP TOTAL necessário para completar este nível
+                                    Text("${gami.xpNextLevelThreshold - gami.xpCurrentLevelBase}xp", style: TextStyle(color: context.colors.text.withOpacity(0.5), fontSize: 13)),
                                   ],
                                 ),
                               ),
@@ -133,8 +135,10 @@ class _AchievementsTabState extends State<AchievementsTab> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Nível ${gami.userLevel}", style: TextStyle(color: context.colors.grayText, fontSize: 16, fontWeight: FontWeight.w600)),
-                            Text("Nível ${gami.userLevel + 1}", style: TextStyle(color: context.colors.grayText, fontSize: 16)),
+                            Text("Nível ${gami.userLevel}", style: TextStyle(color: context.colors.grayText, fontSize: 12, fontWeight: FontWeight.w500)),
+                            // Mostra o XP Total Acumulado como informação secundária
+                            Text("Total: ${gami.totalXp} XP", style: TextStyle(color: context.colors.grayText.withOpacity(0.7), fontSize: 11)),
+                            Text("Nível ${gami.userLevel + 1}", style: TextStyle(color: context.colors.grayText, fontSize: 12)),
                           ],
                         ),
                       ],
@@ -205,20 +209,31 @@ class _AchievementsTabState extends State<AchievementsTab> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // LISTA DE CONQUISTAS DINÂMICA (2 por linha)
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 0.85, 
-                    children: achievements
-                        .map((a) => AchievementCard(achievement: a))
-                        .toList(),
+                  // Cálculo dinâmico do Aspect Ratio para evitar overflow em telas menores
+                  Builder(
+                    builder: (context) {
+                      final double screenWidth = MediaQuery.of(context).size.width;
+                      // Em telas pequenas (ex: iPhone SE), o card precisa de mais altura (ratio menor)
+                      // Em telas grandes, ele pode ser mais quadrado (ratio maior)
+                      final double dynamicAspectRatio = screenWidth < 380 ? 0.75 : 0.82;
+
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 14,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: dynamicAspectRatio, 
+                        children: achievements
+                            .map((a) => AchievementCard(achievement: a))
+                            .toList(),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
+
                 ],
               ),
             ),

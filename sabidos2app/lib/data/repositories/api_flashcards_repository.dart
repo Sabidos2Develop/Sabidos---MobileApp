@@ -6,7 +6,6 @@ class ApiFlashcardsRepository {
   FlashcardModel _mapCard(dynamic c) {
     return FlashcardModel(
       id: c['id'],
-      titulo: c['front'].toString().split('\n').first,
       frente: c['front'],
       verso: c['back'],
       data: c['createdAt'],

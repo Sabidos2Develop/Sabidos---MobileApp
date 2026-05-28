@@ -9,6 +9,7 @@ import 'package:sabidos2app/data/datasources/gamefication_service.dart';
 import 'package:sabidos2app/core/theme/theme_controller.dart';
 import 'package:sabidos2app/data/core/models/user_stats.dart';
 import 'package:sabidos2app/presentation/controllers/gamification_controller.dart';
+import 'package:sabidos2app/presentation/controllers/notification_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -259,6 +260,29 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       ),
                       const SizedBox(height: 24),
                       _buildAchievementsCard(context, gami.unlockedCount),
+                      
+                      // BOTÃO DE TESTE (DEBUG)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: TextButton.icon(
+                          onPressed: () {
+                            final gamiCtrl = context.read<GamificationController>();
+                            // Calculamos o progresso atual
+                            final double oldProgress = (gamiCtrl.totalXp - gamiCtrl.xpCurrentLevelBase) / 
+                                                (gamiCtrl.xpNextLevelThreshold - gamiCtrl.xpCurrentLevelBase);
+                            
+                            context.read<NotificationController>().showLevelUp(
+                              gamiCtrl.userLevel,
+                              oldProgress.clamp(0.0, 1.0),
+                              gamiCtrl.userLevel + 1,
+                              0.35, // Novo progresso fixo para teste
+                            );
+                          },
+                          icon: const Icon(Icons.bug_report, size: 16, color: Colors.white30),
+                          label: const Text("TESTAR LEVEL UP", style: TextStyle(color: Colors.white30, fontSize: 10)),
+                        ),
+                      ),
+                      
                       const SizedBox(height: 20),
                     ],
                   ),

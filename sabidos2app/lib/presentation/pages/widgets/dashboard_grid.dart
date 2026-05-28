@@ -26,7 +26,7 @@ class DashboardGrid extends StatelessWidget {
         'title': 'Flashcards',
         'val': stats.flashcardsCriados.toString(),
         'suffix': '',
-        'emoji': '🎴',
+        'emoji': '🃏',
         'index': 1
       },
       {
