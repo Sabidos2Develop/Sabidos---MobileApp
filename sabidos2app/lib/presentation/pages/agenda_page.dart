@@ -50,6 +50,7 @@ class _AgendaPageState extends State<AgendaPage> {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true, // Garante que respeite as áreas seguras do sistema
       backgroundColor: const Color(0xFF292535),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

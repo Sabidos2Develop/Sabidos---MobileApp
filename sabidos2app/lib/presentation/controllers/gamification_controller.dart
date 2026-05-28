@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/core/models/user_stats.dart';
 import '../../data/core/models/daily_mission.dart';
@@ -122,31 +123,28 @@ class GamificationController extends ChangeNotifier {
 
   Future<void> claimDailyMission(String missionId) async {
     try {
-      final mission = _dailyMissions.firstWhere((m) => m.id == missionId);
-      final int rewardXp = mission.xpReward;
-      
-      // --- LÓGICA PREDITIVA (OPTIMISTIC UI) ---
-      // Se o XP atual + prêmio bater a meta do próximo nível, já avisamos o UI
-      if (_totalXp + rewardXp >= _xpNextLevelThreshold) {
-        final double oldProgress = (_totalXp - _xpCurrentLevelBase) / (_xpNextLevelThreshold - _xpCurrentLevelBase);
-        
-        // Predizemos o próximo nível e o progresso aproximado para a animação começar agora
-        final int predictedNewLevel = _userLevel + 1;
-        // Calculamos um progresso fictício inicial (ex: 15%) que será corrigido quando a API voltar
-        final double predictedNewProgress = ((_totalXp + rewardXp) - _xpNextLevelThreshold) / (_xpNextLevelThreshold * 1.2 - _xpNextLevelThreshold);
-        
-        _notif?.showLevelUp(_userLevel, oldProgress.clamp(0, 1), predictedNewLevel, predictedNewProgress.clamp(0, 1));
-      }
+      // 1. CAPTURA ESTADO ATUAL (SNAPSHOT ANTES DA API)
+      final int oldLevel = _userLevel;
+      final double oldProgress = (_totalXp - _xpCurrentLevelBase) / (_xpNextLevelThreshold - _xpCurrentLevelBase);
 
       debugPrint('--- INICIANDO CLAIM API: $missionId ---');
       final data = await _service.claimMissionReward(missionId);
       
+      // 2. NOVOS DADOS DEFINITIVOS DA API
       final int apiNewLevel = (data['level'] ?? data['Level'] ?? _userLevel) as int;
       final int apiNewTotalXp = (data['totalXp'] ?? data['TotalXp'] ?? _totalXp) as int;
       final int apiNewBase = (data['xpCurrentLevelBase'] ?? data['XpCurrentLevelBase'] ?? _xpCurrentLevelBase) as int;
       final int apiNewNext = (data['xpNextLevelThreshold'] ?? data['XpNextLevelThreshold'] ?? _xpNextLevelThreshold) as int;
 
-      // ATUALIZAÇÃO REAIS (Não disparamos notificação aqui pois a Preditiva já disparou se necessário)
+      // 3. DETECTA LEVEL UP COM DADOS REAIS
+      if (apiNewLevel > oldLevel) {
+        final double newProgress = (apiNewTotalXp - apiNewBase) / (apiNewNext - apiNewBase);
+        
+        debugPrint('--- LEVEL UP DETECTADO (API): Progress $oldProgress -> $newProgress ---');
+        _notif?.showLevelUp(oldLevel, oldProgress.clamp(0, 1), apiNewLevel, newProgress.clamp(0, 1));
+      }
+
+      // 4. ATUALIZAÇÃO DO ESTADO GLOBAL
       _userLevel = apiNewLevel;
       _totalXp = apiNewTotalXp;
       _xpCurrentLevelBase = apiNewBase;
@@ -154,10 +152,8 @@ class GamificationController extends ChangeNotifier {
 
       _rerollsLeft = (data['rerollsLeft'] ?? data['RerollsLeft'] ?? 0) as int;
       final List rawMissions = data['missions'] ?? data['Missions'] ?? [];
-      
       _dailyMissions = rawMissions.map((m) => DailyMission.fromMap(m)).toList();
       
-      debugPrint('--- DISPARANDO NOTIFY LISTENERS ---');
       notifyListeners();
     } catch (e) {
       debugPrint('Erro ao coletar recompensa: $e');

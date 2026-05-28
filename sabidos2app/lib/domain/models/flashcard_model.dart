@@ -30,7 +30,6 @@ extension FlashcardDifficultyExtension on FlashcardDifficulty {
 
 class FlashcardModel {
   final String id;
-  final String titulo;
   final String frente;
   final String verso;
   final String data;
@@ -40,7 +39,6 @@ class FlashcardModel {
 
   FlashcardModel({
     required this.id,
-    required this.titulo,
     required this.frente,
     required this.verso,
     required this.data,
@@ -51,7 +49,6 @@ class FlashcardModel {
 
   FlashcardModel copyWith({
     String? id,
-    String? titulo,
     String? frente,
     String? verso,
     String? data,
@@ -61,7 +58,6 @@ class FlashcardModel {
   }) {
     return FlashcardModel(
       id: id ?? this.id,
-      titulo: titulo ?? this.titulo,
       frente: frente ?? this.frente,
       verso: verso ?? this.verso,
       data: data ?? this.data,
@@ -73,13 +69,11 @@ class FlashcardModel {
 }
 
 class FlashcardFormData {
-  final String titulo;
   final String frente;
   final String verso;
   final FlashcardDifficulty dificuldade;
 
   FlashcardFormData({
-    required this.titulo,
     required this.frente,
     required this.verso,
     required this.dificuldade,
